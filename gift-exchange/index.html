@@ -227,18 +227,28 @@ try {
   .fr.f-crown .fb{right:auto;left:50%;top:-26%;transform:translateX(-50%) rotate(-6deg)}
   .fr.f-antlers .fb{right:auto;left:50%;top:-28%;transform:translateX(-50%)}
   @media (prefers-reduced-motion:reduce){.fr{animation:none!important}.fb{animation:none!important}}
-  .frhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px}
+  .frhead{display:flex;align-items:center;gap:10px;margin-top:18px}
   .frhead label{margin:0}
-  .fgroup{margin-top:8px}
-  .fgl{font:600 11px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 6px}
-  .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px}
-  .fopt{display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 4px 8px;border-radius:14px;border:1px solid rgba(150,90,60,.22);background:rgba(255,255,255,.6);color:var(--ink);cursor:pointer;font:500 12px "Zen Kaku Gothic New",Inter,sans-serif;transition:transform .15s,border-color .15s,background .15s}
-  .fopt:hover{transform:translateY(-2px);background:rgba(255,255,255,.9)}
-  .fopt.on{border-color:var(--pine);background:#fff;box-shadow:0 4px 14px rgba(192,80,43,.28)}
-  .fopt .fn{line-height:1.15;text-align:center}
-  body.night .fopt{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2)}
-  body.night .fopt:hover{background:rgba(255,255,255,.14)}
-  body.night .fopt.on{background:rgba(255,255,255,.18);border-color:var(--pine)}
+  .frname{margin-right:auto;color:var(--muted);font-size:13px}
+  .dice{border:0;background:none;font-size:18px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:8px}
+  .dice:hover{background:rgba(120,120,110,.14)}
+  .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:6px 4px;margin-top:8px;justify-items:center}
+  .fsw{padding:3px;border-radius:50%;border:2px solid transparent;background:none;cursor:pointer;line-height:0;transition:transform .15s,border-color .15s}
+  .fsw:hover{transform:scale(1.1)}
+  .fsw.on{border-color:var(--pine);box-shadow:0 0 0 3px rgba(192,80,43,.16)}
+  .fsw:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+  /* top bar: one tidy row, rarely used actions live in the menu */
+  .top{z-index:30}
+  .more{position:relative}
+  .morebtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.55);cursor:pointer;font-size:18px;line-height:1;color:var(--ink);padding:0}
+  .morebtn:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+  .menu{display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:200px;padding:6px;border-radius:14px;background:#fff;color:#2a1d17;border:1px solid rgba(120,70,40,.16);box-shadow:0 14px 34px rgba(40,20,10,.22);flex-direction:column;z-index:40}
+  .more.open .menu{display:flex}
+  .menu button{text-align:left;font:500 14px "Zen Kaku Gothic New",Inter,sans-serif;padding:10px 12px;border:0;background:none;border-radius:9px;cursor:pointer;color:inherit}
+  .menu button:hover,.menu button:focus-visible{background:rgba(192,80,43,.1);outline:none}
+  body.night .morebtn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#f3e9e0}
+  body.night .menu{background:#1f2540;color:#f3e9e0;border-color:rgba(255,255,255,.18)}
+  body.night .menu button:hover,body.night .menu button:focus-visible{background:rgba(255,255,255,.12)}
   .cd{text-align:center}
   .cd .sub{margin-bottom:14px}
   .cd-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:420px;margin:0 auto}
@@ -1189,8 +1199,8 @@ try {
       await S.db.doc("participants/"+uid).set(rec);
       upsertPerson(uid, rec);
       S.saving = false; S.dirty = false; S.draft = null; S.ed = null; S.signingUp = false;
-      if (!existing){ S.auth = {u:"",p:"",p2:"",np:""}; S.tab = "home"; S.msg = {t:"ok", s:"Welcome! You're in."}; toast("Welcome! You're in \u2713"); }
-      else { S.msg = {t:"ok", s:"Saved."}; toast("Saved \u2713"); }
+      if (!existing){ S.auth = {u:"",p:"",p2:"",np:""}; S.tab = "home"; S.msg = null; toast("Welcome! You're in \u2713"); }
+      else { S.msg = null; toast("Saved \u2713"); }
     } catch(e){
       S.saving = false; S.signingUp = false;
       var denied = e && e.code === "permission-denied";
@@ -1334,12 +1344,21 @@ try {
       h("div",null, h("div",{class:"eyebrow"},"Christmas 2026", h("span",{class:"sep"},"\u00B7"), h("span",{class:"bud"},"$"+BUDGET+" limit")), h("h1",null,"Family Gift Exchange")),
       h("div",{class:"top-r"},
         langSwitch(),
-        h("button",{class:"quiet",type:"button",onclick:function(){ if (!document.querySelector(".intro")) intro(); }},"Replay welcome"),
-        h("button",{class:"quiet",type:"button","aria-pressed":smShown()?"true":"false",onclick:toggleSnowman}, smShown() ? "Remove snowman" : "Summon snowman"),
         h("button",{class:"viewsw"+(curView()==="night"?" is-night":""),type:"button",role:"switch","aria-checked":curView()==="night"?"true":"false","aria-label":"Switch between light view and night view",onclick:toggleView},
           h("span",{class:"vs-opt vs-l"}, h("i",{class:"vs-ic","aria-hidden":"true"},"\u2600"), "Light"), h("span",{class:"vs-opt vs-n"}, h("i",{class:"vs-ic","aria-hidden":"true"},"\u263E"), "Night")),
         m ? avatar(m,36) : null,
-        m ? h("button",{class:"btn ghost small",onclick:signOut},"Sign out") : null));
+        moreMenu(m)));
+  }
+  function closeMenus(){ document.querySelectorAll(".more.open").forEach(function(x){ x.classList.remove("open"); var b = x.querySelector(".morebtn"); if (b) b.setAttribute("aria-expanded","false"); }); }
+  function moreMenu(m){
+    var wrap = h("div",{class:"more"}), btn = h("button",{class:"morebtn",type:"button","aria-haspopup":"menu","aria-expanded":"false","aria-label":"More",title:"More"}, "\u22ef");
+    btn.addEventListener("click", function(ev){ ev.stopPropagation(); var open = !wrap.classList.contains("open"); closeMenus(); if (open){ wrap.classList.add("open"); btn.setAttribute("aria-expanded","true"); } });
+    function item(label, fn){ return h("button",{type:"button",role:"menuitem",onclick:function(){ closeMenus(); fn(); }}, label); }
+    wrap.append(btn, h("div",{class:"menu",role:"menu"},
+      item("Replay welcome", function(){ if (!document.querySelector(".intro")) intro(); }),
+      item(smShown() ? "Remove snowman" : "Summon snowman", toggleSnowman),
+      m ? item("Sign out", signOut) : null));
+    return wrap;
   }
   function setLang(l){ GXI.set(l); }
   function langSwitch(en, mn){
@@ -1538,19 +1557,15 @@ try {
     if (me() && !S.saving) saveProfile(); else render();      // existing profile: the new frame saves right away
   }
   function frameChips(d){
-    var order = [], by = {};
-    FRAMES.forEach(function(f){ if (!by[f[3]]){ by[f[3]] = []; order.push(f[3]); } by[f[3]].push(f); });
+    var cur = frameDef(d.frame || "none") || FRAMES[0];
     return h("div",null,
-      h("div",{class:"frhead"}, h("label",null,"Frame"),
-        h("button",{class:"quiet",type:"button",onclick:function(){ pickFrame(d, FRAMES[1 + Math.floor(Math.random()*(FRAMES.length-1))][0]); }}, "\uD83C\uDFB2 ", "Surprise me")),
-      order.map(function(g){
-        return h("div",{class:"fgroup"}, h("div",{class:"fgl"}, g),
-          h("div",{class:"fgrid",role:"radiogroup","aria-label":"Frame"}, by[g].map(function(f){
-            var on = (d.frame||"none") === f[0];
-            return h("button",{type:"button",class:"fopt"+(on?" on":""),role:"radio","aria-checked":on?"true":"false",onclick:function(){ pickFrame(d, f[0]); }},
-              avatar({name:d.name||"?",photo:d.photo,frame:f[0]},44), h("span",{class:"fn"}, f[1]));
-          })));
-      }));
+      h("div",{class:"frhead"}, h("label",null,"Frame"), h("span",{class:"frname"}, cur[1]),
+        h("button",{class:"dice",type:"button","aria-label":"Surprise me",title:"Surprise me",onclick:function(){ pickFrame(d, FRAMES[1 + Math.floor(Math.random()*(FRAMES.length-1))][0]); }}, "\uD83C\uDFB2")),
+      h("div",{class:"fgrid",role:"radiogroup","aria-label":"Frame"}, FRAMES.map(function(f){
+        var on = (d.frame || "none") === f[0];
+        return h("button",{type:"button",class:"fsw"+(on?" on":""),role:"radio","aria-checked":on?"true":"false","aria-label":f[1],title:f[1],onclick:function(){ pickFrame(d, f[0]); }},
+          avatar({name:d.name||"?",photo:d.photo,frame:f[0]},36));
+      })));
   }
   function photoRow(d, fileInput){
     return h("div",null,
@@ -2187,6 +2202,8 @@ try {
   });
   GXI.apply(); paintCredit();
   setInterval(tickCountdown, 1000);
+  document.addEventListener("click", closeMenus);
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeMenus(); });
   intro();
   boot();
 })();
