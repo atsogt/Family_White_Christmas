@@ -1755,8 +1755,9 @@ try {
 
   function matchView(){
     if (!S.draw || !S.draw.assignments){
-      return h("div",{class:"card empty"}, h("h2",null,"Names haven't been drawn yet"),
-        h("p",{class:"sub"}, S.people.length+" "+(S.people.length===1?"person has":"people have")+" joined. Your match will appear here after the organizer runs the draw."));
+      return h("div",null, countdownCard(),
+        h("div",{class:"card empty"}, h("h2",null,"Names haven't been drawn yet"),
+          h("p",{class:"sub"}, S.people.length+" "+(S.people.length===1?"person has":"people have")+" joined. Your match will appear here after the organizer runs the draw.")));
     }
     var tid = S.draw.assignments[S.sid];
     if (!tid) return h("div",{class:"card empty"}, h("h2",null,"You joined after the draw"),
