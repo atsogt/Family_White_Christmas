@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Family Gift Exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Dancing+Script:wght@600;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
+<script>window.__fbReady=new Promise(function(r){window.__fbResolve=r;});</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { initializeFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, addDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+// Firebase web config. These values are public by design; the Firestore security rules protect the data.
+const firebaseConfig = {
+  "apiKey": "AIzaSyBkEvo8JA5v-exMAI3qqTjbyHXz6da_O0Y",
+  "authDomain": "family-gift-exchange-93ea3.firebaseapp.com",
+  "projectId": "family-gift-exchange-93ea3",
+  "storageBucket": "family-gift-exchange-93ea3.firebasestorage.app",
+  "messagingSenderId": "22707436534",
+  "appId": "1:22707436534:web:508ab1343c257c7f1065d7"
+};
+try {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const fs = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  const dsnap = (s) => ({ id: s.id, exists: s.exists(), data: () => s.data() });
+  const csnap = (s) => ({ docs: s.docs.map((d) => ({ id: d.id, exists: true, data: () => d.data() })), metadata: s.metadata });
+  const db = {
+    collection: (name) => ({
+      onSnapshot: (ok, err) => onSnapshot(collection(fs, name), (s) => ok(csnap(s)), err),
+      add: (data) => addDoc(collection(fs, name), data),
+    }),
+    doc: (path) => ({
+      get: async () => dsnap(await getDoc(doc(fs, path))),
+      set: (data) => setDoc(doc(fs, path), data),
+      delete: () => deleteDoc(doc(fs, path)),
+      onSnapshot: (ok, err) => onSnapshot(doc(fs, path), (s) => ok(dsnap(s)), err),
+    }),
+    // ops: [{t:"set", path, data} | {t:"delete", path}] applied atomically
+    batch: async (ops) => {
+      const b = writeBatch(fs);
+      ops.forEach((o) => (o.t === "set" ? b.set(doc(fs, o.path), o.data) : b.delete(doc(fs, o.path))));
+      await b.commit();
+    },
+  };
+  const api = {
+    db,
+    auth: {
+      onChange: (cb) => onAuthStateChanged(auth, (u) => cb(u ? { uid: u.uid, email: u.email || "" } : null)),
+      signUp: async (email, pw) => { const c = await createUserWithEmailAndPassword(auth, email, pw); return { uid: c.user.uid, email: c.user.email || "" }; },
+      signIn: async (email, pw) => { const c = await signInWithEmailAndPassword(auth, email, pw); return { uid: c.user.uid, email: c.user.email || "" }; },
+      signOut: () => signOut(auth),
+      reset: (email) => sendPasswordResetEmail(auth, email),
+    },
+  };
+  window.__fbResolve(api);
+} catch (e) { console.error("Firebase failed to start", e); }
+</script>
+<style>
+  :root{
+    --bg:#fff4e6; --card:rgba(255,255,255,.2); --line:rgba(120,70,40,.14); --ink:#2a1d17; --muted:#8a6f60;
+    --pine:#c0502b; --pine-soft:#fde4d6; --berry:#a8283a; --gold:#c9962f; --gold-soft:#fbefcf;
+    --a1:rgba(255,176,128,.55); --a2:rgba(255,150,170,.42); --a3:rgba(255,214,120,.5);
+  }
+  *{box-sizing:border-box}
+  html,body{overflow-x:hidden;overflow-x:clip;max-width:100%;overscroll-behavior-x:none}
+  body{margin:0;min-height:100vh;background:linear-gradient(160deg,#fff7ec 0%,#ffe9d6 55%,#ffdfd2 100%) fixed;color:var(--ink);font:15px/1.55 "Zen Kaku Gothic New",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+    radial-gradient(640px 480px at 8% -6%,var(--a1),transparent 70%),
+    radial-gradient(700px 520px at 104% 24%,var(--a2),transparent 70%),
+    radial-gradient(580px 440px at 38% 106%,var(--a3),transparent 70%)}
+  .wrap{max-width:860px;margin:0 auto;padding:14px 9px 24px}
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
+
+  /* top bar */
+  .top{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 26px}
+  .top>*:not(.hsnow){position:relative;z-index:1}
+  .hsnow{position:absolute!important;left:0;right:0;top:-14px;bottom:-4px;width:100%;height:calc(100% + 18px);pointer-events:none;z-index:0;-webkit-mask-image:linear-gradient(#000 62%,transparent);mask-image:linear-gradient(#000 62%,transparent)}
+  .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--berry);font-weight:600}
+  .top h1{font-size:26px;line-height:1.15}
+  .top-r{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .quiet{font:500 12.5px Inter,system-ui,sans-serif;letter-spacing:.01em;color:var(--muted);background:none;border:0;padding:6px 9px;border-radius:8px;cursor:pointer;transition:color .15s,background .15s}
+  .quiet:hover{color:var(--ink);background:rgba(120,120,110,.12)}
+  .quiet:focus-visible{outline:2px solid var(--pine);outline-offset:1px}
+  .eyebrow .bud{color:var(--muted);font-weight:500}
+  .eyebrow .sep{margin:0 .55em;opacity:.45}
+  @keyframes melt{0%{transform:scale(1,1);opacity:1}30%{transform:scale(1.1,.72);opacity:1}65%{transform:scale(1.5,.2);opacity:.9}100%{transform:scale(2.1,.03);opacity:0}}
+  @keyframes summonin{0%{transform:scale(0) rotate(-60deg);opacity:0}38%{transform:scale(1.9) rotate(12deg);opacity:1}58%{transform:scale(.82) rotate(-6deg)}78%{transform:scale(1.18) rotate(3deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes halo{0%{transform:scale(.15);opacity:0}22%{opacity:1}100%{transform:scale(1.9);opacity:0}}
+  @keyframes ring{0%{transform:scale(.2);opacity:.95}100%{transform:scale(2.4);opacity:0}}
+  .sm.summon::before,.sm.summon::after{content:"";position:absolute;left:50%;top:50%;border-radius:50%;pointer-events:none;z-index:-1}
+  .sm.summon::before{width:170px;height:170px;margin:-92px 0 0 -85px;background:radial-gradient(circle,rgba(255,236,170,.98),rgba(255,196,96,.55) 38%,rgba(255,170,80,0) 70%);animation:halo 1.7s ease-out both}
+  .sm.summon::after{width:90px;height:90px;margin:-67px 0 0 -45px;border:3px solid rgba(255,214,120,.95);box-shadow:0 0 18px rgba(255,200,100,.9);animation:ring 1.2s .1s ease-out both}
+  .sm.melt{animation-play-state:paused!important;pointer-events:none}
+  .sm.melt svg{animation:melt 1.9s cubic-bezier(.45,.05,.7,.7) forwards!important}
+  .sm.summon svg{animation:summonin 1.5s cubic-bezier(.3,1.4,.5,1) both!important}
+  body.no-snowman #walk,body.no-snowman .sm,body.no-snowman .sbub{display:none!important}
+  /* the snowman lives on the Home page only (not sign in, sign up, profile, match or admin) */
+  body.off-home .walk,body.off-home .sm,body.off-home .sbub,body.off-home .print{display:none!important}
+
+  /* tabs */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:26px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{border:0;background:none;font:500 14px Inter,sans-serif;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--pine);border-bottom-color:var(--pine);font-weight:600}
+
+  /* surfaces */
+  .card{background:var(--card);border:1px solid rgba(255,255,255,.8);border-radius:20px;padding:26px 24px;margin-bottom:22px;-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2);box-shadow:0 8px 24px rgba(150,80,40,.12),inset 0 1px 0 rgba(255,255,255,.9)}
+  .card h2{font-size:20px}
+  .sub{color:var(--muted);font-size:14px;margin:4px 0 0}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .chip.in{background:var(--pine-soft);color:var(--pine)}
+  .chip.out{background:rgba(120,70,40,.08);color:var(--muted)}
+  .chip.gold{background:var(--gold-soft);color:#7c5f1c}
+  .chip.you{background:var(--ink);color:#fff}
+
+  /* status hero */
+  .status{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .status .big{font-family:Fraunces,serif;font-size:40px;line-height:1;color:var(--pine)}
+  .status .big small{font-size:18px;color:var(--muted);font-family:Inter,sans-serif;font-weight:500}
+  .bar{height:8px;border-radius:99px;background:#efeee9;overflow:hidden;margin-top:10px;min-width:180px}
+  .bar>i{display:block;height:100%;background:var(--pine);border-radius:99px;transition:width .4s}
+  .grow{flex:1;min-width:200px}
+
+  /* family cards */
+  .fams{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;align-items:start}
+  .fam{margin:0;padding:0;overflow:hidden}
+  .fam-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.35)}
+  .fam-h h3{font-size:17px}
+  button.fam-h{width:100%;margin:0;text-align:left;font:inherit;color:inherit;cursor:pointer;border:0;border-bottom:1px solid var(--line);-webkit-tap-highlight-color:transparent}
+  button.fam-h:focus-visible{outline:2px solid var(--pine);outline-offset:-3px}
+  .fam-h .count{margin-left:auto}
+  .fam-h .chev{flex:none;width:9px;height:9px;margin:0 3px 0 14px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.6;transform:translateY(2px) rotate(-135deg);transition:transform .4s cubic-bezier(.34,1.3,.64,1)}
+  .fam.closed .fam-h .chev{transform:translateY(-2px) rotate(45deg)}
+  .fam.closed .fam-h{border-bottom-color:transparent}
+  .fam-b{display:grid;grid-template-rows:1fr;transition:grid-template-rows .38s cubic-bezier(.4,0,.2,1)}
+  .fam-bi{min-height:0;overflow:hidden;padding-bottom:6px;transition:opacity .25s ease}
+  .fam.closed .fam-b{grid-template-rows:0fr}
+  .fam.closed .fam-bi{opacity:0;padding-bottom:0}
+  .fam-ctl{display:flex;justify-content:flex-end;margin:0 0 12px}
+  .foldall{display:inline-flex;align-items:center;gap:9px;min-height:42px;padding:9px 18px 9px 16px;border-radius:999px;font:600 13.5px Inter,system-ui,sans-serif;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+    border:1px solid rgba(255,255,255,.65);background:linear-gradient(165deg,rgba(255,255,255,.66),rgba(255,255,255,.24));box-shadow:0 8px 18px -10px rgba(80,60,160,.5),inset 0 1.5px 0 rgba(255,255,255,.95);transition:transform .35s cubic-bezier(.34,1.56,.64,1),background .2s}
+  .foldall:active{transform:scale(.94)}
+  .foldall:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+  .foldall .fa-ico{flex:none;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(2px) rotate(-135deg);transition:transform .4s cubic-bezier(.34,1.3,.64,1)}
+  .foldall.allclosed .fa-ico{transform:translateY(-2px) rotate(45deg)}
+  body.night .foldall{border-color:rgba(255,255,255,.28);background:linear-gradient(165deg,rgba(255,255,255,.2),rgba(255,255,255,.06));box-shadow:0 8px 18px -10px rgba(0,0,0,.6),inset 0 1.5px 0 rgba(255,255,255,.4)}
+  /* frosted "liquid glass" family card (header + member rows keep their own look) */
+  .card.fam{position:relative;background:linear-gradient(155deg,rgba(255,255,255,.34),rgba(255,255,255,.08) 55%,rgba(255,255,255,.18));border:1px solid rgba(255,255,255,.55);border-radius:26px;-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);box-shadow:0 14px 40px rgba(120,60,30,.16),0 2px 6px rgba(120,60,30,.08),inset 0 1.5px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.25),inset 1px 0 0 rgba(255,255,255,.4),inset -1px 0 0 rgba(255,255,255,.2)}
+  .card.fam::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(120% 70% at 12% -10%,rgba(255,255,255,.3),transparent 55%),linear-gradient(180deg,rgba(255,255,255,.1),transparent 30%)}
+  .card.fam>*{position:relative}
+  body.night .card.fam{background:linear-gradient(155deg,rgba(255,255,255,.18),rgba(255,255,255,.04) 55%,rgba(255,255,255,.1));border-color:rgba(255,255,255,.28);box-shadow:0 16px 44px rgba(0,0,0,.45),inset 0 1.5px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(255,255,255,.08)}
+  .count{font-size:13px;color:var(--muted);font-weight:500}
+  .mrow{display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid #f1f0eb}
+  .mrow:first-of-type{border-top:0}
+  .mrow .nm{flex:1;min-width:0;font-weight:500;overflow-wrap:anywhere;line-height:1.25}
+  .mrow.pending .nm{color:var(--muted);font-weight:400}
+  .mrow.pending .avatar{opacity:.5;filter:grayscale(1)}
+  .fam{--ix:30px}
+  .fam .mrow{background:rgba(255,255,255,.18);border:0;border-radius:14px;margin:8px 14px;padding:12px 16px;gap:14px;min-height:60px}
+  .fam .fam-h{padding:16px var(--ix)}
+  .fam .mrow .nm{line-height:1.3;padding-top:1px}
+  .fam .mrow .chip{white-space:nowrap}
+  .chip.joined{background:rgba(46,160,100,.2);color:#1d7a4a}
+  body.night .chip.joined{background:rgba(80,210,140,.2);color:#8ce8b4}
+  .fam .none{background:rgba(255,255,255,.16);border-radius:12px;margin:10px}
+  .org-row{background:rgba(255,255,255,.16);border:0;border-radius:12px;padding:10px 12px;margin-top:8px}
+  .wish li{background:rgba(255,255,255,.16);border:0;border-radius:12px;padding:12px 14px;margin-top:8px}
+  .wish li::before{margin-top:8px}
+  body.night .fam .mrow,body.night .org-row,body.night .wish li,body.night .fam .none{background:rgba(255,255,255,.1)}
+  .none{padding:16px 18px;color:var(--muted);font-size:14px}
+
+  /* avatar */
+  .avatar{border-radius:50%;object-fit:cover;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-family:Inter,sans-serif}
+
+  /* forms */
+  label{display:block;font-weight:600;font-size:13px;margin:22px 0 9px}
+  input[type=text],input[type=password],select{width:100%;font:inherit;padding:12px 14px;border:1px solid rgba(150,90,60,.28);border-radius:12px;background:rgba(255,255,255,.85);color:var(--ink)}
+  input:focus,select:focus{outline:2px solid var(--pine);outline-offset:-1px;border-color:var(--pine)}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:5px}
+  .btn{border:0;font:600 14px Inter,sans-serif;padding:10px 18px;border-radius:10px;cursor:pointer;background:var(--pine);color:#fff}
+  .btn:hover{background:#9c4223}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:rgba(255,255,255,.8);color:var(--ink);border:1px solid rgba(150,90,60,.25)}
+  .btn.ghost:hover{background:#fff}
+  .btn.small{padding:6px 12px;font-size:13px}
+  .btn.danger{background:var(--berry);color:#fff;border-color:var(--berry)}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .row>input{flex:1}
+  .x{border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 8px;border-radius:8px;line-height:1}
+  .x:hover{background:#f1f0eb;color:var(--berry)}
+  .photo-pick{display:flex;align-items:center;gap:16px}
+  .locked{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.6);color:var(--ink)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.grid2{grid-template-columns:1fr}}
+
+  /* messages */
+  .note{border-radius:10px;padding:10px 14px;font-size:14px;margin:12px 0;background:var(--gold-soft);color:#6a5115}
+  .note.err{background:#fbe9ea;color:#7a1d28}
+  .note.ok{background:var(--pine-soft);color:var(--pine)}
+
+  /* match */
+  .match{text-align:center;padding:32px 20px}
+  .match .avatar{margin:0 auto 14px;box-shadow:0 0 0 4px #fff,0 0 0 5px var(--line)}
+  .match .tag{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--berry);font-weight:600;margin:0}
+  .match .name{font-family:Fraunces,serif;font-size:30px;font-weight:600;margin:4px 0 10px}
+  .wish{list-style:none;margin:12px 0 0;padding:0}
+  .wish li{display:flex;gap:12px;padding:12px 0;border-top:1px solid #f1f0eb;word-break:break-word}
+  .wish li:first-child{border-top:0}
+  .wish li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-top:9px}
+  .wish a{color:var(--pine);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  .empty{text-align:center;padding:36px 20px}
+  .empty h2{margin-bottom:6px}
+  .org-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #f1f0eb}
+  .org-row:first-of-type{border-top:0}
+  .org-row .grow{min-width:0}
+  .org-row small{color:var(--muted);display:block;font-size:12.5px;margin-top:2px;line-height:1.35}
+  .org-row{flex-wrap:wrap;padding:12px 14px!important;gap:10px 12px}
+  .org-row .grow{flex:1 1 150px!important;min-width:0;line-height:1.3;overflow-wrap:anywhere}
+  .org-row>.btn,.org-row>.chip{flex:none}
+  .org-row .btn.small{white-space:nowrap}
+  @media (max-width:520px){ .org-row .grow{flex-basis:calc(100% - 56px)!important} .org-row .avatar{align-self:flex-start} .org-row>.btn,.org-row>.chip{margin-left:48px} .org-row>.btn+.btn,.org-row>.btn+.chip{margin-left:0} }
+  .pick{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{font:500 14px "Zen Kaku Gothic New",Inter,sans-serif;padding:9px 16px;border-radius:999px;border:1px solid rgba(150,90,60,.28);background:rgba(255,255,255,.8);color:var(--ink);cursor:pointer;transition:all .15s}
+  .opt:hover{background:#fff;border-color:var(--pine)}
+  .opt.on{background:var(--pine);border-color:var(--pine);color:#fff;box-shadow:0 4px 14px rgba(192,80,43,.3)}
+  .opt.alt{border-style:dashed;color:var(--muted)}
+  .opt.alt.on{color:#fff}
+  .fun{--fp:#e0457b;--fg:#f4b72f;position:relative;flex:none;margin:0 0 -1px auto;border:0;background:none;box-shadow:none;cursor:pointer;padding:9px 26px;font:700 15px Inter,sans-serif;letter-spacing:.015em;color:var(--fp);-webkit-tap-highlight-color:transparent}
+  body.night .fun{--fp:#ff7fab;--fg:#ffd668}
+  @supports((-webkit-background-clip:text) or (background-clip:text)){
+    .fun .lbl{background:linear-gradient(100deg,var(--fp) 0%,var(--fp) 40%,var(--fg) 50%,var(--fp) 60%,var(--fp) 100%);background-size:260% 100%;background-position:120% 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+  }
+  .fun .sp{position:absolute;color:var(--fg);line-height:1;pointer-events:none;text-shadow:0 0 6px rgba(255,205,90,.9)}
+  .fun .s1{left:2px;top:3px;font-size:17px}
+  .fun .s2{right:3px;bottom:2px;font-size:19px}
+  .fun .s3{right:22px;top:0;font-size:12px}
+  .fun .s4{left:24px;bottom:0;font-size:11px}
+  .fun[aria-selected="true"] .lbl{text-decoration:underline;text-decoration-color:var(--fg);text-decoration-thickness:2px;text-underline-offset:6px}
+  .fun:active{transform:scale(.97)}
+  .fun:focus-visible{outline:2px solid var(--fg);outline-offset:2px;border-radius:12px}
+  @media(prefers-reduced-motion:no-preference){
+    .fun .lbl{animation:glint 3.4s ease-in-out infinite}
+    .fun .sp{animation:twinkle 2.4s ease-in-out infinite}
+    .fun .s2{animation-delay:.6s}.fun .s3{animation-delay:1.2s}.fun .s4{animation-delay:1.8s}
+    @keyframes glint{0%{background-position:120% 0}55%,100%{background-position:-30% 0}}
+    @keyframes twinkle{0%,100%{opacity:.25;transform:scale(.55) rotate(0)}45%{opacity:1;transform:scale(1.15) rotate(25deg)}}
+  }
+  .credit{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;margin-top:34px;padding:40px 16px 64px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);letter-spacing:.02em;text-align:center}
+  .walk{position:fixed;left:14px;bottom:8px;width:150px;height:50px;z-index:40;pointer-events:none}
+  .sm{pointer-events:auto}
+  .sm{position:absolute;left:2px;bottom:0;width:34px;height:44px;z-index:2;animation:stroll 9s linear infinite;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  .sm svg{display:block;overflow:visible;transform-origin:50% 100%;animation:waddle .55s ease-in-out infinite;pointer-events:none}
+  .sm .bl{animation:stepA .55s ease-in-out infinite}
+  .sm .br{animation:stepB .55s ease-in-out infinite}
+  .sm .xx,.sm .dz{opacity:0}
+  .sm.free{position:absolute;bottom:auto;animation:none;z-index:50}
+  .sm.free svg,.sm.free .bl,.sm.free .br{animation:none}
+  .sm.held{cursor:grabbing;transform:scale(1.14);filter:drop-shadow(0 10px 6px rgba(0,0,0,.28))}
+  .sm.held svg{animation:swing .5s ease-in-out infinite;transform-origin:50% 12%}
+  .sm.held .bl{animation:stepA .32s ease-in-out infinite}
+  .sm.held .br{animation:stepB .32s ease-in-out infinite}
+  .sm.land svg{animation:land .55s cubic-bezier(.3,.7,.3,1)}
+  .sm.fall svg{animation:topple .85s cubic-bezier(.4,0,.4,1) forwards}
+  .sm.fall .ey{opacity:0}
+  .sm.fall .xx{opacity:1}
+  .sm.fall .dz{opacity:1}
+  .sm.fall .dz g{animation:spin 1.1s linear infinite;transform-origin:13px 4px}
+  .sm.up svg{animation:getup .95s ease-out}
+  .sm.nudge svg{animation:hop .7s ease-out}
+  .sm.home{transition:left 1.4s cubic-bezier(.4,0,.3,1),top 1.4s cubic-bezier(.4,0,.3,1)}
+  .sm.home svg{animation:waddle .55s ease-in-out infinite}
+  .sm.home .bl{animation:stepA .55s ease-in-out infinite}
+  .sm.home .br{animation:stepB .55s ease-in-out infinite}
+  .print{position:absolute;bottom:4px;width:9px;height:5px;border-radius:50%;background:radial-gradient(ellipse at 50% 35%,rgba(255,255,255,.55),rgba(188,208,235,.22) 65%,transparent 80%);box-shadow:inset 0 1px 1.5px rgba(96,120,156,.4);transform:translateX(-50%) scale(.3);opacity:0;z-index:1;pointer-events:none;animation:println 4.6s ease-out forwards}
+  @keyframes println{0%{opacity:0;transform:translateX(-50%) scale(.3)}14%{opacity:.9;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(1.08)}}
+  @keyframes stroll{
+    0%{transform:translateX(0) scaleX(1)}
+    7%{transform:translateX(16px) translateY(-9px) scaleX(1)}
+    14%{transform:translateX(31px) translateY(0) scaleX(1)}
+    21%{transform:translateX(46px) translateY(-9px) scaleX(1)}
+    27%{transform:translateX(59px) translateY(0) scaleX(1);animation-timing-function:ease-out}
+    34%{transform:translateX(74px) translateY(-20px) scaleX(1)}
+    40%{transform:translateX(88px) translateY(-20px) scaleX(1);animation-timing-function:ease-in}
+    46%{transform:translateX(108px) translateY(0) scaleX(1)}
+    48%{transform:translateX(110px) translateY(0) scaleX(1)}
+    50%{transform:translateX(110px) translateY(0) scaleX(-1)}
+    57%{transform:translateX(93px) translateY(-9px) scaleX(-1)}
+    64%{transform:translateX(76px) translateY(0) scaleX(-1);animation-timing-function:ease-out}
+    70%{transform:translateX(60px) translateY(-17px) scaleX(-1);animation-timing-function:ease-in}
+    77%{transform:translateX(42px) translateY(0) scaleX(-1)}
+    84%{transform:translateX(25px) translateY(-9px) scaleX(-1)}
+    91%{transform:translateX(9px) translateY(0) scaleX(-1)}
+    96%{transform:translateX(0) translateY(0) scaleX(-1)}
+    100%{transform:translateX(0) translateY(0) scaleX(1)}
+  }
+  @keyframes waddle{0%,100%{transform:rotate(-6deg) translateY(0)}50%{transform:rotate(6deg) translateY(-2px)}}
+  @keyframes stepA{50%{transform:translateY(-2.5px)}}
+  @keyframes stepB{0%,100%{transform:translateY(-2.5px)}50%{transform:none}}
+  @keyframes swing{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}}
+  @keyframes land{0%{transform:translateY(-16px)}45%{transform:translateY(0) scale(1.16,.84)}68%{transform:scale(.95,1.07)}100%{transform:none}}
+  @keyframes topple{0%{transform:rotate(0)}30%{transform:rotate(calc(var(--d,1)*14deg))}62%{transform:rotate(calc(var(--d,1)*98deg))}78%{transform:rotate(calc(var(--d,1)*80deg))}90%{transform:rotate(calc(var(--d,1)*90deg))}100%{transform:rotate(calc(var(--d,1)*88deg))}}
+  @keyframes getup{0%{transform:rotate(calc(var(--d,1)*88deg))}45%{transform:rotate(calc(var(--d,1)*-14deg))}65%{transform:rotate(calc(var(--d,1)*9deg))}82%{transform:rotate(calc(var(--d,1)*-4deg))}100%{transform:none}}
+  @keyframes hop{0%,100%{transform:none}25%{transform:translateY(-9px) rotate(-6deg)}50%{transform:translateY(0) scale(1.1,.9)}70%{transform:translateY(-5px) rotate(6deg)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .sbub{position:fixed;left:0;top:0;z-index:60;pointer-events:none;padding:13px 22px;border-radius:30px;background:rgba(251,243,228,.8);-webkit-backdrop-filter:blur(8px) saturate(1.2);backdrop-filter:blur(8px) saturate(1.2);color:#43301f;font:700 13px/1.45 inherit;font-family:inherit;text-align:center;white-space:pre;border:1px solid rgba(255,244,222,.55);box-shadow:0 10px 28px rgba(30,18,8,.28);opacity:0;transform:translate(-50%,-100%) scale(.86);transition:opacity .3s ease,transform .3s cubic-bezier(.34,1.56,.64,1)}
+  .sbub::after{content:"";position:absolute;left:var(--tx,50%);bottom:-6px;width:13px;height:13px;background:rgba(251,243,228,.8);border-right:1px solid rgba(255,244,222,.55);border-bottom:1px solid rgba(255,244,222,.55);transform:translateX(-50%) rotate(45deg);border-radius:0 0 5px 0}
+  .sbub.on{opacity:1;transform:translate(-50%,-100%) scale(1)}
+  @media(prefers-reduced-motion:reduce){.sm,.sm svg,.sm .bl,.sm .br{animation:none}}
+  .credit i{font-style:normal;color:#e0457b}
+  body.night .credit{text-shadow:0 1px 10px rgba(0,0,0,.6)}
+  .intro .cred{margin-top:16px;font-size:12px;letter-spacing:.05em;opacity:.85}
+  .fr{display:flex;width:fit-content;flex:none;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+  .fr>*{margin:0!important}
+  .match .fr{margin:0 auto 14px}
+  .editor{margin-top:18px}
+  .vpwrap{display:flex;justify-content:center;margin:6px 0 4px}
+  .vp{position:relative;overflow:hidden;border-radius:50%;background:#222;cursor:grab;touch-action:none}
+  .vp.grab{cursor:grabbing}
+  .wish li span.wi{flex:1;min-width:0}
+  .lcard{display:flex;gap:12px;align-items:stretch;margin-top:10px;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.22);border:1px solid var(--line);text-decoration:none!important;color:inherit;font-weight:400}
+  .lcard .ph{width:104px;height:78px;flex:none;object-fit:cover;background:rgba(255,255,255,.25)}
+  .lcard .ph.fav{object-fit:contain;padding:16px;background:rgba(255,255,255,.5)}
+  .lcard .meta{padding:9px 12px 9px 0;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .lcard .t{font-weight:600;font-size:13.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--ink)}
+  .lcard .d{font-size:12px;color:var(--muted)}
+  .lslot{margin:-2px 0 10px}
+  .row .lcard{margin-top:0}
+  /* welcome intro */
+  .intro{position:fixed;inset:0;z-index:9999;background:#0b1330;overflow:hidden;opacity:1;transition:opacity 1.5s ease;cursor:pointer}
+  .intro.out{opacity:0;pointer-events:none}
+  .intro .art{position:absolute;inset:0;will-change:transform;backface-visibility:hidden;background:url(night.jpg) center/cover no-repeat;opacity:0;transform-origin:center;animation:kb 7s cubic-bezier(.2,.6,.3,1) forwards,artin 2.8s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes kb{from{transform:scale(1)}to{transform:scale(1.1)}}
+  @keyframes artin{to{opacity:1}}
+  .intro .glow{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,206,120,.8),rgba(255,170,80,.28) 42%,transparent 70%);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.55;transform:scale(1.18)}}
+  .intro canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;animation:artin 3s 1.2s ease forwards}
+  .intro .lbar{position:absolute;left:0;right:0;height:9vh;background:#000;z-index:3}
+  .intro .lbar.t{top:0;transform:translateY(-100%);animation:barT 1.8s .3s cubic-bezier(.3,.7,.2,1) forwards}
+  .intro .lbar.b{bottom:0;transform:translateY(100%);animation:barB 1.8s .3s cubic-bezier(.3,.7,.2,1) forwards}
+  @keyframes barT{to{transform:none}}
+  @keyframes barB{to{transform:none}}
+  .intro::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 45%,rgba(0,0,0,.55)),linear-gradient(transparent 50%,rgba(5,9,24,.65));pointer-events:none}
+  .intro .bear{position:absolute;left:50%;bottom:calc(17% + 212px);height:clamp(150px,27vh,250px);aspect-ratio:330/369;transform:translateX(-50%) translateZ(0);z-index:2;pointer-events:none;opacity:0;animation:artin 2.4s 1.3s ease forwards;will-change:opacity}
+  .intro .bear img{display:block;width:100%;height:100%;object-fit:contain;-webkit-user-drag:none;user-select:none}
+  .intro .txt{position:absolute;left:0;right:0;bottom:17%;z-index:2;text-align:center;color:#fff;padding:0 24px;text-shadow:0 2px 20px rgba(0,0,0,.65)}
+  .intro .txt small{display:block;font:700 15px "Zen Kaku Gothic New",Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#ffd9a0;padding-left:.34em}
+  .intro .txt b{display:block;font:700 clamp(50px,14vw,76px)/1 "Dancing Script",cursive;margin:10px 0 8px;text-shadow:0 0 30px rgba(255,200,120,.4),0 2px 18px rgba(0,0,0,.6)}
+  .intro .txt span{font:italic 600 clamp(20px,5.2vw,25px)/1.2 "Cormorant Garamond",Georgia,serif;letter-spacing:.02em;opacity:.95}
+  .intro .txt>*{opacity:0;animation:rise 1.9s cubic-bezier(.3,.6,.2,1) forwards}
+  .intro .txt>*:nth-child(1){animation-delay:1.7s}
+  .intro .txt>*:nth-child(2){animation-delay:1.9s}
+  .intro .txt>*:nth-child(3){animation-delay:4.7s}
+  .intro .txt>*:nth-child(4){animation-delay:3.5s}
+  .intro .txt>.tap{margin-top:30px;font:700 14px "Zen Kaku Gothic New",Inter,sans-serif;letter-spacing:.3em;padding-left:.3em;text-transform:uppercase;color:#ffd9a0;animation:rise 1.6s 5.6s cubic-bezier(.3,.6,.2,1) forwards,breathe 2.8s 7.4s ease-in-out infinite}
+  @keyframes breathe{50%{opacity:.35}}
+  .intro .txt>.cred{position:fixed;left:0;right:0;bottom:calc(9vh + 14px);margin:0;padding:0 16px;font:400 11px "Zen Kaku Gothic New",Inter,sans-serif;letter-spacing:.1em;color:#c9d3ee;text-shadow:0 1px 8px rgba(0,0,0,.7);opacity:0;animation:soft 2s 6.2s ease forwards}
+  @keyframes soft{from{opacity:0}to{opacity:.55}}
+  .intro .txt b.hw{margin:8px 0 4px;line-height:0;text-shadow:none}
+  .hw svg{display:block;width:min(90vw,420px);height:auto;margin:0 auto;overflow:visible}
+  .intro .txt b.hw{position:relative}
+  .intro .txt b.hw::before{content:"";position:absolute;left:-6%;right:-6%;top:-14%;bottom:-14%;background:radial-gradient(ellipse at 50% 55%,rgba(255,200,120,.24),rgba(0,0,0,.22) 55%,transparent 72%);pointer-events:none}
+  .hw text{font:700 78px "Dancing Script",cursive;fill:#fff;fill-opacity:0;stroke:#fff;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+  .hw .ch{stroke-dasharray:640;stroke-dashoffset:640;fill-opacity:0;animation:ink .75s calc(var(--i)*.17s + 2.1s) cubic-bezier(.4,.1,.3,1) forwards,fillin .7s calc(var(--i)*.17s + 2.6s) ease forwards}
+  @keyframes ink{to{stroke-dashoffset:0}}
+  @keyframes fillin{to{fill-opacity:1;stroke-width:.3}}
+  @media(prefers-reduced-motion:reduce){.hw .ch{stroke-dashoffset:0;animation:fillin .8s 2.2s ease forwards}}
+  .lv{font-weight:inherit;animation:lvglow 3s ease-in-out infinite}
+  @keyframes lvglow{0%,76%,100%{color:inherit;text-shadow:0 0 0 rgba(255,105,160,0)}88%{color:#ff7aa8;text-shadow:0 0 9px rgba(255,105,160,.75),0 0 18px rgba(255,105,160,.3)}}
+  @media(prefers-reduced-motion:reduce){.lv{animation:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.intro .art{animation:artin 1.2s ease forwards}.intro .lbar{animation:none!important;transform:none!important}.intro .glow{animation:none}}
+  /* night mode */
+  body.night{--card:rgba(255,255,255,.2);--line:rgba(255,255,255,.14);--ink:#eef2ff;--muted:#a3b0d0;
+    --pine:#e9a84c;--pine-soft:rgba(233,168,76,.18);--berry:#ff8fa0;--gold:#f2c27a;--gold-soft:rgba(242,194,122,.16);
+    background:linear-gradient(rgba(5,9,24,.30),rgba(5,9,24,.55)),#0b1330 url(night.jpg) center/cover fixed no-repeat}
+  body.night::before{display:none}
+  body.night .card{border-color:rgba(255,255,255,.12);box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}
+  body.night .fam-h{background:rgba(255,255,255,.05)}
+  body.night .mrow,body.night .org-row,body.night .wish li{border-top-color:rgba(255,255,255,.08)}
+  body.night input[type=text],body.night input[type=password],body.night select{background:rgba(8,14,34,.7);color:var(--ink);border-color:rgba(255,255,255,.22)}
+  body.night .btn{color:#1b1206}
+  body.night .btn:hover{background:#f6bd6a}
+  body.night .btn.danger{color:#fff}
+  body.night .btn.ghost{background:rgba(255,255,255,.08);color:var(--ink);border-color:rgba(255,255,255,.22)}
+  body.night .btn.ghost:hover{background:rgba(255,255,255,.16)}
+  body.night .btn.ghost.danger{background:var(--berry);color:#1b0a0e}
+  body.night .opt{background:rgba(255,255,255,.08);color:var(--ink);border-color:rgba(255,255,255,.22)}
+  body.night .opt:hover{background:rgba(255,255,255,.16)}
+  body.night .opt.on{background:var(--pine);color:#1b1206;border-color:var(--pine);box-shadow:0 4px 16px rgba(233,168,76,.35)}
+  body.night .chip.in{color:#f6c987}
+  body.night .chip.out{background:rgba(255,255,255,.1)}
+  body.night .chip.you{background:#eef2ff;color:#0b1330}
+  body.night .chip.gold{color:#f6d79b}
+  body.night .note{color:#f6d79b}
+  body.night .note.err{background:rgba(255,120,140,.18);color:#ffb3bf}
+  body.night .note.ok{color:#f6c987}
+  body.night .locked{background:rgba(255,255,255,.06)}
+  body.night .bar{background:rgba(255,255,255,.14)}
+  body.night .top h1,body.night .eyebrow{text-shadow:0 1px 12px rgba(0,0,0,.5)}
+  h3.sec{font-size:16px;margin:22px 0 4px}
+
+  /* ===== Liquid glass mode (toggle: body.lg) ===== */
+  body.lg-morph .card,body.lg-morph .btn,body.lg-morph .tab,body.lg-morph .tabs,body.lg-morph .quiet,body.lg-morph .chip,body.lg-morph input,body.lg-morph select{transition:background .55s ease,box-shadow .55s ease,border-color .55s ease,border-radius .55s ease,color .3s ease}
+  body.lg .card{position:relative;isolation:isolate;overflow:hidden;border-radius:28px;border:1px solid rgba(255,255,255,.62);
+    background:linear-gradient(150deg,rgba(255,255,255,.42),rgba(255,255,255,.1) 48%,rgba(255,255,255,.24));
+    -webkit-backdrop-filter:blur(14px) saturate(1.7);backdrop-filter:blur(14px) saturate(1.7);
+    box-shadow:0 18px 40px -12px rgba(110,90,200,.24),0 4px 12px rgba(120,60,30,.08),inset 0 1.5px 0 rgba(255,255,255,.95),inset 0 -12px 26px -14px rgba(255,255,255,.45),inset 0 0 0 1px rgba(255,255,255,.16)}
+  body.lg .card::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+    background:radial-gradient(280px 200px at var(--mx,18%) var(--my,0%),rgba(255,255,255,.5),transparent 70%),radial-gradient(120% 60% at 90% 110%,rgba(160,200,255,.18),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.14),transparent 34%)}
+  body.lg .card::after{content:"";position:absolute;top:-25%;bottom:-25%;left:0;width:42%;z-index:-1;pointer-events:none;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.3) 45%,rgba(196,176,255,.18) 56%,transparent);
+    transform:translateX(-140%) skewX(-18deg);animation:lgsweep 10s ease-in-out infinite}
+  body.lg .card:nth-of-type(2n)::after{animation-delay:-5s}
+  body.lg .card:nth-of-type(3n)::after{animation-delay:-2.5s}
+  @keyframes lgsweep{0%,50%{transform:translateX(-140%) skewX(-18deg)}100%{transform:translateX(340%) skewX(-18deg)}}
+  body.lg .fam-h{border-bottom-color:rgba(255,255,255,.28)}
+  body.lg .fam .mrow{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 14px -8px rgba(0,0,0,.25)}
+  /* tab bar becomes a floating glass pill */
+  body.lg .tabs{border:1px solid rgba(255,255,255,.6);border-radius:999px;padding:5px;gap:4px;align-items:center;
+    background:linear-gradient(160deg,rgba(255,255,255,.4),rgba(255,255,255,.14));
+    box-shadow:0 10px 26px -12px rgba(110,90,200,.3),inset 0 1.5px 0 rgba(255,255,255,.9),inset 0 -8px 16px -10px rgba(255,255,255,.4)}
+  body.lg .tab{border-radius:999px;border-bottom:0;margin:0;padding:9px 16px;transition:background .3s ease,box-shadow .3s ease,color .2s ease,transform .35s cubic-bezier(.34,1.56,.64,1)}
+  body.lg .tab:active{transform:scale(.94)}
+  body.lg .tab[aria-selected="true"]{color:var(--ink);background:linear-gradient(170deg,rgba(255,255,255,.95),rgba(255,255,255,.62));box-shadow:0 4px 12px -3px rgba(120,80,60,.3),inset 0 1px 0 #fff,inset 0 -3px 6px -3px rgba(200,170,255,.35)}
+  body.lg .fun{margin:0 0 0 auto;padding:9px 22px}
+  /* buttons: glossy glass pills with a squish */
+  body.lg .btn{position:relative;overflow:hidden;isolation:isolate;border:1px solid rgba(255,255,255,.55);border-radius:999px;padding:11px 22px;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.14);
+    background:linear-gradient(165deg,rgba(255,168,128,.96),rgba(192,80,43,.94));
+    box-shadow:0 10px 22px -8px rgba(192,80,43,.55),inset 0 1.5px 0 rgba(255,255,255,.7),inset 0 -7px 12px -7px rgba(255,255,255,.4);
+    transition:transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease,filter .25s ease}
+  body.lg .btn:hover:not(:disabled){background:linear-gradient(165deg,rgba(255,180,140,1),rgba(205,92,52,.96));filter:saturate(1.1)}
+  body.lg .btn::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(90px 60px at var(--mx,30%) var(--my,0%),rgba(255,255,255,.55),transparent 70%)}
+  body.lg .btn:not(.ghost):not(.small)::after{content:"";position:absolute;top:-30%;bottom:-30%;left:0;width:40%;z-index:-1;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:translateX(-160%) skewX(-20deg);animation:lgsweep 7s ease-in-out infinite}
+  body.lg .btn:active:not(:disabled){transform:scale(.94,.9);transition-duration:.12s}
+  body.lg .btn.small{padding:7px 14px}
+  body.lg .btn.ghost{color:var(--ink);text-shadow:none;border-color:rgba(255,255,255,.75);background:linear-gradient(165deg,rgba(255,255,255,.78),rgba(255,255,255,.3));box-shadow:0 8px 18px -10px rgba(80,60,160,.4),inset 0 1.5px 0 rgba(255,255,255,.95)}
+  body.lg .btn.ghost:hover:not(:disabled){background:linear-gradient(165deg,rgba(255,255,255,.95),rgba(255,255,255,.5))}
+  body.lg .btn.danger,body.lg .btn.ghost.danger{color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.18);border-color:rgba(255,255,255,.5);background:linear-gradient(165deg,rgba(220,80,100,.96),rgba(168,40,58,.95));box-shadow:0 10px 22px -8px rgba(168,40,58,.55),inset 0 1.5px 0 rgba(255,255,255,.6)}
+  body.lg .quiet{border-radius:999px;padding:7px 12px}
+  body.lg .quiet:hover{background:linear-gradient(165deg,rgba(255,255,255,.55),rgba(255,255,255,.2));box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 4px 10px -6px rgba(0,0,0,.25)}
+  body.lg .chip{border:1px solid rgba(255,255,255,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 3px 8px -4px rgba(40,40,80,.25)}
+  body.lg input[type=text],body.lg input[type=password],body.lg select{border-radius:999px;padding:12px 18px;border:1px solid rgba(255,255,255,.85);
+    background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.92));box-shadow:inset 0 2px 5px rgba(120,90,70,.14),0 8px 18px -10px rgba(110,90,200,.4)}
+  body.lg input:focus,body.lg select:focus{outline:2px solid rgba(140,110,255,.55);outline-offset:1px;border-color:#fff}
+  /* night */
+  body.night.lg .card{border-color:rgba(255,255,255,.22);background:linear-gradient(150deg,rgba(255,255,255,.2),rgba(255,255,255,.04) 50%,rgba(255,255,255,.1));box-shadow:0 18px 44px -12px rgba(0,0,0,.55),inset 0 1.5px 0 rgba(255,255,255,.4),inset 0 -12px 26px -14px rgba(160,190,255,.2),inset 0 0 0 1px rgba(255,255,255,.07)}
+  body.night.lg .card::before{background:radial-gradient(280px 200px at var(--mx,18%) var(--my,0%),rgba(190,210,255,.28),transparent 70%),radial-gradient(120% 60% at 90% 110%,rgba(150,120,255,.16),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.08),transparent 34%)}
+  body.night.lg .card::after{background:linear-gradient(100deg,transparent,rgba(210,225,255,.2) 45%,rgba(170,150,255,.14) 56%,transparent)}
+  body.night.lg .tabs{border-color:rgba(255,255,255,.2);background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05));box-shadow:0 10px 26px -12px rgba(0,0,0,.6),inset 0 1.5px 0 rgba(255,255,255,.35)}
+  body.night.lg .tab[aria-selected="true"]{color:#fff;background:linear-gradient(170deg,rgba(255,255,255,.34),rgba(255,255,255,.12));box-shadow:0 4px 12px -3px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.5)}
+  body.night.lg .btn{color:#1b1206;text-shadow:0 1px 0 rgba(255,255,255,.35);border-color:rgba(255,255,255,.5);background:linear-gradient(165deg,rgba(255,226,160,.98),rgba(236,166,72,.96));box-shadow:0 10px 24px -8px rgba(240,170,70,.5),inset 0 1.5px 0 rgba(255,255,255,.75),inset 0 -7px 12px -7px rgba(255,255,255,.45)}
+  body.night.lg .btn:hover:not(:disabled){background:linear-gradient(165deg,rgba(255,236,180,1),rgba(246,189,106,.98))}
+  body.night.lg .btn.ghost{color:var(--ink);text-shadow:none;border-color:rgba(255,255,255,.28);background:linear-gradient(165deg,rgba(255,255,255,.2),rgba(255,255,255,.06));box-shadow:0 8px 18px -10px rgba(0,0,0,.6),inset 0 1.5px 0 rgba(255,255,255,.4)}
+  body.night.lg .btn.ghost:hover:not(:disabled){background:linear-gradient(165deg,rgba(255,255,255,.3),rgba(255,255,255,.12))}
+  body.night.lg .btn.danger,body.night.lg .btn.ghost.danger{color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.25);background:linear-gradient(165deg,rgba(230,90,112,.97),rgba(168,40,58,.96))}
+  body.night.lg .quiet:hover{background:linear-gradient(165deg,rgba(255,255,255,.2),rgba(255,255,255,.06))}
+  body.night.lg input[type=text],body.night.lg input[type=password],body.night.lg select{border-color:rgba(255,255,255,.26);background:linear-gradient(180deg,rgba(8,14,34,.6),rgba(8,14,34,.8));box-shadow:inset 0 2px 6px rgba(0,0,0,.4),0 8px 18px -10px rgba(120,100,255,.5)}
+
+
+  /* smooth, staggered reveal when a family opens */
+  @keyframes rowin{from{opacity:0;transform:translateY(-10px) scale(.97)}to{opacity:1;transform:none}}
+  .fam.opening .mrow,.fam.opening .none{animation:rowin .5s cubic-bezier(.2,.8,.2,1) both}
+  .fam.opening .mrow:nth-child(2){animation-delay:.05s}.fam.opening .mrow:nth-child(3){animation-delay:.1s}.fam.opening .mrow:nth-child(4){animation-delay:.15s}
+  .fam.opening .mrow:nth-child(5){animation-delay:.2s}.fam.opening .mrow:nth-child(6){animation-delay:.25s}.fam.opening .mrow:nth-child(n+7){animation-delay:.3s}
+  .fam-b{transition:grid-template-rows .5s cubic-bezier(.32,.72,0,1)}
+  .fam-bi{transition:opacity .35s ease}
+
+  /* ===== Light view: snowy sunrise photo + bright frosted glass ===== */
+  .lbg{position:fixed;inset:0;z-index:-2;pointer-events:none;background:linear-gradient(rgba(255,246,250,.22),rgba(255,246,250,0) 22%),linear-gradient(rgba(74,46,100,.24),rgba(74,46,100,.34)),#d9bfd6 url(winter.jpg) center/cover no-repeat;opacity:0;transition:opacity .7s ease;visibility:hidden}
+  body.light .lbg{opacity:1;visibility:visible}
+  body.light{--card:rgba(255,255,255,.26);--line:rgba(120,84,160,.2);--ink:#2b1938;--muted:#5f4a74;--pine:#d0527e;--pine-soft:rgba(208,82,126,.14);--berry:#b3365f;--gold:#d88a2c;--gold-soft:rgba(216,138,44,.16);background:#f1dcec}
+  body.light::before{display:none}
+
+  .viewsw{position:relative;display:inline-flex;align-items:center;padding:3px;border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.16);cursor:pointer;font:600 12.5px Inter,system-ui,sans-serif;color:var(--muted);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .viewsw::before{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:linear-gradient(165deg,#fff,rgba(255,255,255,.78));box-shadow:0 3px 8px -2px rgba(0,0,0,.35),inset 0 1px 0 #fff;transition:transform .5s cubic-bezier(.34,1.4,.64,1)}
+  .viewsw.is-night::before{transform:translateX(100%)}
+  .viewsw:active::before{filter:brightness(.95)}
+  .viewsw .vs-opt{position:relative;z-index:1;min-width:68px;justify-content:center;padding:7px 10px;display:inline-flex;gap:5px;line-height:1;transition:color .3s}
+  .viewsw .vs-ic{font-style:normal;font-size:14px;line-height:1;opacity:.75;transition:color .35s,transform .6s cubic-bezier(.34,1.56,.64,1),text-shadow .35s,opacity .3s}
+  /* light view: dark label on the white thumb, the sun turns orange */
+  .viewsw:not(.is-night) .vs-l{color:#2b1c33}
+  .viewsw:not(.is-night) .vs-l .vs-ic{color:#ff8a00;opacity:1;transform:rotate(90deg) scale(1.15);text-shadow:0 0 8px rgba(255,150,0,.6)}
+  /* night view: dark glass thumb, white label, the moon turns yellow */
+  .viewsw.is-night::before{background:linear-gradient(165deg,rgba(255,255,255,.3),rgba(255,255,255,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 3px 10px -2px rgba(0,0,0,.55)}
+  .viewsw.is-night .vs-n{color:#fff}
+  .viewsw.is-night .vs-n .vs-ic{color:#ffd23f;opacity:1;transform:rotate(-14deg) scale(1.15);text-shadow:0 0 9px rgba(255,214,60,.75)}
+  body.light .viewsw{border-color:rgba(255,255,255,.85);background:rgba(255,255,255,.34);color:var(--ink)}
+  .viewsw:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+  .lightbtn{display:inline-flex;align-items:center;gap:6px}
+  .lightbtn .lsun{font-size:14px;line-height:1;color:#e59a2f;transition:transform .6s cubic-bezier(.34,1.56,.64,1)}
+  .lightbtn[aria-pressed="true"]{color:var(--ink);background:linear-gradient(165deg,rgba(255,255,255,.75),rgba(255,255,255,.3));box-shadow:inset 0 1px 0 #fff,0 4px 12px -6px rgba(120,70,160,.5)}
+  .lightbtn[aria-pressed="true"] .lsun{transform:rotate(90deg) scale(1.15)}
+  body.light .hsnow{filter:drop-shadow(0 0 1.5px rgba(120,96,170,.75))}
+  body.light.lg .card{border-color:rgba(255,255,255,.85);
+    background:linear-gradient(150deg,rgba(255,255,255,.46),rgba(255,255,255,.14) 50%,rgba(255,255,255,.28));
+    box-shadow:0 18px 42px -14px rgba(150,90,190,.38),0 4px 12px rgba(190,110,130,.12),inset 0 1.5px 0 rgba(255,255,255,.8),inset 0 -12px 26px -14px rgba(255,200,190,.4),inset 0 0 0 1px rgba(255,255,255,.3)}
+  body.light.lg .card::before{background:radial-gradient(280px 200px at var(--mx,18%) var(--my,0%),rgba(255,238,222,.55),transparent 70%),radial-gradient(120% 60% at 90% 110%,rgba(255,170,190,.2),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.18),transparent 34%)}
+  body.light.lg .card.lit::before{background:radial-gradient(320px 260px at var(--mx,18%) var(--my,0%),rgba(255,244,232,.95),rgba(255,214,200,.3) 45%,transparent 72%),linear-gradient(180deg,rgba(255,255,255,.3),transparent 34%)}
+  body.light.lg .card::after{background:linear-gradient(100deg,transparent,rgba(255,244,230,.5) 45%,rgba(255,190,205,.3) 56%,transparent)}
+  body.light.lg .fam .mrow{background:rgba(255,255,255,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 6px 14px -8px rgba(150,90,170,.35)}
+  body.light.lg .fam-h{background:rgba(255,255,255,.28);border-bottom-color:rgba(160,110,190,.2)}
+  body.light .fam .none,body.light .org-row,body.light .wish li{background:rgba(255,255,255,.3)}
+  body.light.lg .tabs{border-color:rgba(255,255,255,.85);background:linear-gradient(160deg,rgba(255,255,255,.44),rgba(255,255,255,.18));box-shadow:0 10px 26px -12px rgba(110,70,150,.45),inset 0 1.5px 0 rgba(255,255,255,.85)}
+  body.light.lg .tab[aria-selected="true"]{color:var(--ink);background:linear-gradient(170deg,#fff,rgba(255,255,255,.7));box-shadow:0 4px 12px -3px rgba(180,90,140,.4),inset 0 1px 0 #fff,inset 0 -3px 6px -3px rgba(255,170,190,.45)}
+  body.light.lg .btn{color:#fff;text-shadow:0 1px 1px rgba(150,40,80,.35);border-color:rgba(255,255,255,.7);background:linear-gradient(165deg,rgba(255,180,120,.98),rgba(228,86,130,.96));box-shadow:0 10px 24px -8px rgba(228,86,130,.55),inset 0 1.5px 0 rgba(255,255,255,.75),inset 0 -7px 12px -7px rgba(255,255,255,.4)}
+  body.light.lg .btn:hover:not(:disabled){background:linear-gradient(165deg,rgba(255,196,140,1),rgba(238,100,142,.98))}
+  body.light.lg .btn.ghost{color:var(--ink);text-shadow:none;border-color:rgba(255,255,255,.9);background:linear-gradient(165deg,rgba(255,255,255,.66),rgba(255,255,255,.28));box-shadow:0 8px 18px -10px rgba(110,70,150,.5),inset 0 1.5px 0 rgba(255,255,255,.85)}
+  body.light.lg .btn.danger,body.light.lg .btn.ghost.danger{color:#fff;background:linear-gradient(165deg,rgba(226,84,110,.97),rgba(176,40,70,.96))}
+  body.light.lg .foldall{border-color:rgba(255,255,255,.8);background:linear-gradient(165deg,rgba(255,255,255,.62),rgba(255,255,255,.26))}
+  body.light.lg input[type=text],body.light.lg input[type=password],body.light.lg select{background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.88));border-color:rgba(255,255,255,.9);color:var(--ink);box-shadow:inset 0 2px 5px rgba(150,100,160,.16),0 8px 18px -10px rgba(190,100,160,.45)}
+  body.light .top .quiet{color:var(--ink);background:linear-gradient(165deg,rgba(255,255,255,.5),rgba(255,255,255,.24));box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 4px 10px -6px rgba(120,70,160,.45)}
+  body.light .eyebrow{text-shadow:0 0 8px rgba(255,255,255,.8)}
+  body.light .lgbg i{opacity:.5}
+  body.light .lgbg i:nth-child(1){background:radial-gradient(circle,rgba(255,168,120,.7),rgba(255,168,120,0) 68%)}
+  body.light .lgbg i:nth-child(2){background:radial-gradient(circle,rgba(196,164,255,.65),rgba(196,164,255,0) 68%)}
+  body.light .lgbg i:nth-child(3){background:radial-gradient(circle,rgba(255,146,190,.55),rgba(255,146,190,0) 68%)}
+  body.light .lgbg i:nth-child(4){background:radial-gradient(circle,rgba(150,205,255,.5),rgba(150,205,255,0) 68%)}
+  /* night view: brighter names */
+  body.night .mrow .nm,body.night .mrow.pending .nm{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+  body.night .mrow .nm{font-weight:600}
+  body.night .mrow.pending .nm{color:#f1f5ff;font-weight:500}
+  body.night .mrow.pending .avatar{opacity:.75}
+  body.night .org-row .grow,body.night .fam-h h3{color:#fff}
+  body.night .org-row small{color:#c4cff0}
+  body.night .count{color:#d3dcf7}
+  /* light view: Add Family Member needs to read clearly on the pale glass */
+  body.light .fun{--fp:#a8124f;--fg:#d96d00}
+  body.light .fun .lbl{display:inline-block;font-weight:800;filter:drop-shadow(0 0 5px rgba(255,255,255,.95)) drop-shadow(0 0 1px rgba(255,255,255,.9))}
+  body.light .fun .sp{color:#e07a00;text-shadow:0 0 6px rgba(255,255,255,.95),0 0 10px rgba(255,150,0,.6)}
+  body.light .fun[aria-selected="true"] .lbl{text-decoration-color:#d96d00}
+  body.light .credit{border-top-color:rgba(255,255,255,.55)}
+  body.light .credit>span:first-child{display:inline-flex;align-items:center;justify-content:center;gap:0 .35em;padding:12px 16px;border-radius:999px;white-space:nowrap;color:#2b1938;font-size:13.5px;font-weight:600;letter-spacing:.01em;
+    border:1px solid rgba(255,255,255,.9);background:linear-gradient(165deg,rgba(255,255,255,.78),rgba(255,255,255,.4));
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 12px 26px -12px rgba(110,70,150,.65),inset 0 1.5px 0 rgba(255,255,255,.95)}
+  body.light .credit i{color:#d6246e;text-shadow:0 0 8px rgba(255,120,170,.6)}
+  body.light .credit .by{color:#a8124f;font-weight:800}
+  body.light .credit .lv{color:#2b1938}
+  body.light .sbub{background:rgba(255,248,240,.88)}
+
+  /* profile pop-up */
+  .fam .mrow.clk{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .2s}
+  .fam .mrow.clk:active{transform:scale(.975)}
+  .fam .mrow.clk:focus-visible{outline:2px solid var(--pine);outline-offset:-2px}
+  .pp{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(12,10,30,.5);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);-webkit-tap-highlight-color:transparent;animation:ppin .25s ease both}
+  .pp.out{animation:ppout .22s ease both}
+  @keyframes ppin{from{opacity:0}to{opacity:1}}
+  @keyframes ppout{to{opacity:0}}
+  @keyframes ppcard{0%{opacity:0;transform:translateY(18px) scale(.86)}60%{opacity:1;transform:translateY(-3px) scale(1.02)}100%{opacity:1;transform:none}}
+  .pp-card{position:relative;width:min(380px,100%);max-height:calc(100dvh - 44px);overflow-y:auto;overscroll-behavior:contain;padding:30px 22px 24px;border-radius:30px;text-align:center;color:var(--ink);
+    border:1px solid rgba(255,255,255,.5);background:linear-gradient(155deg,rgba(70,70,120,.94),rgba(40,44,92,.96));
+    -webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5);
+    box-shadow:0 30px 70px -18px rgba(0,0,0,.6),inset 0 1.5px 0 rgba(255,255,255,.7);animation:ppcard .5s cubic-bezier(.2,.9,.3,1) both}
+  .pp.out .pp-card{animation:none;opacity:0;transform:translateY(10px) scale(.95);transition:opacity .2s,transform .2s}
+  .pp-av{display:flex;justify-content:center;margin:2px 0 14px}
+  .pp-name{font-size:23px;line-height:1.2;overflow-wrap:anywhere}
+  .pp-fam{margin:4px 0 12px;color:var(--muted);font-size:14px}
+  .pp-tags{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .pp-note{margin:14px 4px 0;color:var(--muted);font-size:13.5px;line-height:1.5}
+  .pp-card .btn{margin-top:18px}
+  .pp-wl{margin-top:18px;text-align:left;border-top:1px solid rgba(255,255,255,.22);padding-top:14px}
+  .pp-wl h4{margin:0 0 4px;font-size:15px}
+  .pp-wl .wish{margin:0}
+  .pp-wl .wish li{padding:10px 12px;margin-top:8px;border-top:0;border-radius:14px;background:rgba(255,255,255,.12)}
+  .pp-wl .wn{display:block;font-weight:600;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+  .pp-card .wish a.lcard{color:inherit;text-decoration:none}
+  .pp-card .lcard .t{color:inherit}
+  .lcard .ph[style*="none"]+.meta{padding-left:12px}
+  .pp-card .lcard .d{color:inherit;opacity:.65}
+  body.light .pp-wl{border-top-color:rgba(60,34,90,.14)}
+  body.light .pp-wl .wish li{background:rgba(60,34,90,.06)}
+  .pp-x{position:absolute;top:10px;right:12px;width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:inherit;font-size:22px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  body.night .pp-card{background:linear-gradient(155deg,rgba(40,52,104,.95),rgba(20,26,64,.96));border-color:rgba(255,255,255,.22);color:#fff}
+  body.night .pp-name{color:#fff}
+  body.light .pp-card{background:linear-gradient(155deg,rgba(255,255,255,.96),rgba(250,240,255,.92));border-color:rgba(255,255,255,.95);color:#2b1938;box-shadow:0 30px 70px -20px rgba(90,50,130,.55),inset 0 1.5px 0 #fff}
+  body.light .pp{background:rgba(60,34,90,.34)}
+  body.light .pp-x{background:rgba(60,34,90,.08)}
+  @media (prefers-reduced-motion:reduce){.pp-card{animation:ppin .2s ease both}}
+  /* touch light: brighter, bigger glow under the finger */
+  body.lg .card.lit{border-color:rgba(255,255,255,.95)}
+  body.lg .card.lit::before{background:radial-gradient(320px 260px at var(--mx,18%) var(--my,0%),rgba(255,255,255,.75),rgba(255,255,255,.2) 45%,transparent 72%),radial-gradient(120% 60% at 90% 110%,rgba(160,200,255,.18),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.14),transparent 34%)}
+  body.night.lg .card.lit{border-color:rgba(255,255,255,.5)}
+  body.night.lg .card.lit::before{background:radial-gradient(320px 260px at var(--mx,18%) var(--my,0%),rgba(200,218,255,.45),rgba(190,210,255,.12) 45%,transparent 72%),radial-gradient(120% 60% at 90% 110%,rgba(150,120,255,.16),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.08),transparent 34%)}
+  body.lg .btn.lit::before{background:radial-gradient(130px 90px at var(--mx,30%) var(--my,0%),rgba(255,255,255,.85),transparent 72%)}
+  /* phone spacing */
+  @media (max-width:600px){
+    .wrap{padding:16px 14px 30px}
+    .top{padding:4px 0 18px;gap:10px}
+    .top-r{gap:6px 8px}
+    .card{padding:20px 18px;margin-bottom:16px}
+    body.lg .card{border-radius:26px}
+    .tabs{margin-bottom:18px}
+    .fams{gap:12px}
+    .fams .card{margin-bottom:0}
+    .card.fam{padding:0}
+    .fam{--ix:20px}
+    button.fam-h,.fam .fam-h{padding:15px var(--ix);min-height:58px}
+    .fam .mrow{margin:6px 10px;padding:11px 12px;gap:12px;min-height:56px}
+    .fam-ctl{margin:0 0 12px}
+    .status{gap:16px}
+    .org-row{padding:12px 12px!important}
+    h2{line-height:1.25}
+    .actions{gap:10px}
+  }
+
+  /* drifting colour behind the glass: the frosted cards bend and blur it as it moves */
+  .lgbg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+  .lgbg i{position:absolute;left:0;top:0;width:max(300px,62vw);height:max(300px,62vw);border-radius:50%;opacity:.8;will-change:transform;transform:translate3d(0,0,0)}
+  .lgbg i:nth-child(1){background:radial-gradient(circle,rgba(150,128,255,.7),rgba(150,128,255,0) 68%);animation:lgb1 19s ease-in-out infinite alternate}
+  .lgbg i:nth-child(2){background:radial-gradient(circle,rgba(70,212,196,.6),rgba(70,212,196,0) 68%);animation:lgb2 23s ease-in-out infinite alternate}
+  .lgbg i:nth-child(3){background:radial-gradient(circle,rgba(255,130,170,.6),rgba(255,130,170,0) 68%);animation:lgb3 27s ease-in-out infinite alternate}
+  .lgbg i:nth-child(4){background:radial-gradient(circle,rgba(255,206,110,.55),rgba(255,206,110,0) 68%);animation:lgb4 31s ease-in-out infinite alternate}
+  @keyframes lgb1{0%{transform:translate3d(-20vw,-10vh,0) scale(1)}100%{transform:translate3d(55vw,55vh,0) scale(1.25)}}
+  @keyframes lgb2{0%{transform:translate3d(60vw,-8vh,0) scale(1.15)}100%{transform:translate3d(-15vw,60vh,0) scale(.9)}}
+  @keyframes lgb3{0%{transform:translate3d(10vw,85vh,0) scale(1)}100%{transform:translate3d(65vw,10vh,0) scale(1.3)}}
+  @keyframes lgb4{0%{transform:translate3d(-25vw,45vh,0) scale(1.1)}100%{transform:translate3d(50vw,90vh,0) scale(.95)}}
+  body.night .lgbg i:nth-child(1){background:radial-gradient(circle,rgba(120,110,255,.55),rgba(120,110,255,0) 68%)}
+  body.night .lgbg i:nth-child(2){background:radial-gradient(circle,rgba(60,190,230,.42),rgba(60,190,230,0) 68%)}
+  body.night .lgbg i:nth-child(3){background:radial-gradient(circle,rgba(200,100,255,.4),rgba(200,100,255,0) 68%)}
+  body.night .lgbg i:nth-child(4){background:radial-gradient(circle,rgba(255,170,90,.3),rgba(255,170,90,0) 68%)}
+  /* stronger, quicker sheen across each card; keeps the iOS compositor happy */
+  body.lg .card{transform:translateZ(0);-webkit-transform:translateZ(0)}
+  body.lg .card::after{width:46%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5) 45%,rgba(196,176,255,.3) 56%,transparent);animation-duration:7s}
+  body.night.lg .card::after{background:linear-gradient(100deg,transparent,rgba(215,228,255,.34) 45%,rgba(170,150,255,.22) 56%,transparent)}
+  @keyframes lgsweep{0%,38%{transform:translateX(-140%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}
+
+</style>
+</head>
+<body>
+<div class="lbg" aria-hidden="true"></div><div class="lgbg" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="wrap"><div id="app"></div><div class="credit"><span><i>♥</i> Developed with <b class="lv">love</b> by <b class="by">Anand Tsogtbaatar</b></span><span class="walk" id="walk"><span class="sm" id="sman" role="img" aria-label="Playful snowman: drag or poke me"><svg viewBox="0 0 26 34" width="34" height="44"><ellipse class="bl" cx="9" cy="32" rx="4" ry="2" fill="#3b2a22"/><ellipse class="br" cx="17" cy="32" rx="4" ry="2" fill="#3b2a22"/><path d="M5.5 22L1 18M20.5 22L25 19" stroke="#6b4a2f" stroke-width="1.2" stroke-linecap="round"/><circle cx="13" cy="24" r="8" fill="#fff" stroke="#c9d6e8" stroke-width=".8"/><circle cx="13" cy="13" r="6" fill="#fff" stroke="#c9d6e8" stroke-width=".8"/><rect x="8" y="3" width="10" height="5" rx="1" fill="#2b2b3a"/><rect x="6" y="7.5" width="14" height="1.8" rx=".9" fill="#2b2b3a"/><circle class="ey" cx="11" cy="12" r=".9" fill="#222"/><circle class="ey" cx="15" cy="12" r=".9" fill="#222"/><path class="xx" d="M9.9 10.9l2.2 2.2M12.1 10.9l-2.2 2.2M13.9 10.9l2.2 2.2M16.1 10.9l-2.2 2.2" stroke="#222" stroke-width=".8" stroke-linecap="round"/><path d="M13 13.5L18.5 14.5L13 15.5Z" fill="#f08a3c"/><path d="M7.5 18.5Q13 21.5 18.5 18.5" stroke="#d8453a" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="13" cy="23" r=".8" fill="#333"/><circle cx="13" cy="26.5" r=".8" fill="#333"/><g class="dz"><g><text x="4" y="4" font-size="5" fill="#ffd34d">★</text><text x="19" y="3" font-size="4" fill="#ffd34d">✦</text><text x="11" y="-1" font-size="4" fill="#fff">★</text></g></g></svg></span></span></div></div>
+<script>
+(function(){
+  "use strict";
+  var BUDGET = 100;
+  var FAMILIES = ["Tsogtbaatar family","Dagvadorj family","Lee family","Ganbold family","Other"];
+  var app = document.getElementById("app");
+  var ORG_NAME = "anand tsogtbaatar";
+  var ORG_ID = "t-anand";   // Anand Tsogtbaatar is the organizer
+  var STATIC_ROSTER = (function(){
+    var src = {
+      "Tsogtbaatar family":["Erdenee Tsogtbaatar","Enktsetseg Dagvadorj","Bilguun Tsogtbaatar","Anand Tsogtbaatar","Maria Tsogtbaatar","Elisa Enkh Tsogtbaatar"],
+      "Dagvadorj family":["Khosbayar Dagvadorj","Nara Magsar","Kevin Dagvadorj","Sofia Dagvadorj"],
+      "Lee family":["Chang Lee","Tuyatseg Dagvadorj","Dulgoon Tuyatsetseg","Kenny Lee","Julia Lee","Leah"],
+      "Ganbold family":["Ankhbayar Ganbold","Altantuya Oyunbaatar","Amarlin","Enkhjin","Eval","Enkhee Eej"]
+    }, out = [];
+    Object.keys(src).forEach(function(f){
+      src[f].forEach(function(n){
+        var id = n === "Anand Tsogtbaatar" ? ORG_ID : "t-" + n.toLowerCase().replace(/[^a-z0-9]+/g,"-");
+        out.push({id:id, name:n, family:f, s:true});
+      });
+    });
+    return out;
+  })();
+  function withStatic(list){
+    var ids = {}; STATIC_ROSTER.forEach(function(r){ ids[r.id] = true; });
+    return STATIC_ROSTER.concat(list.filter(function(r){ return !ids[r.id]; }));
+  }
+
+  function h(tag, props){
+    var e = document.createElement(tag);
+    if (props) for (var k in props){
+      var v = props[k];
+      if (v == null || v === false) continue;
+      if (k === "class") e.className = v;
+      else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), v);
+      else if (k === "value") e.value = v;
+      else e.setAttribute(k, v === true ? "" : v);
+    }
+    for (var i = 2; i < arguments.length; i++) add(e, arguments[i]);
+    return e;
+  }
+  function add(e, kid){
+    if (kid == null || kid === false) return;
+    if (Array.isArray(kid)) { kid.forEach(function(x){ add(e, x); }); return; }
+    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+
+  var S = {
+    db:null, fb:null, sid:null, email:"", auth:{u:"",p:"",p2:"",np:""}, canEdit:false, meta:null, mine:null, unMine:null, gotAuth:false, authInit:false, signingUp:false, needCheck:false,
+    people:[], roster:STATIC_ROSTER.slice(), draw:null, gotPeople:false, gotDraw:false, gotRoster:false, slow:false,
+    tab:"home", ed:null, draft:null, dirty:false, saving:false, msg:null, focusIdx:null,
+    confirm:null, orgMsg:null, unavailable:null, rd:{family:FAMILIES[0], name:""}
+  };
+
+  try { S.lastU = localStorage.getItem("giftx.u") || ""; } catch(e){ S.lastU = ""; }
+
+  function burst(r, kind){
+    var box = document.createElement("div");
+    box.style.cssText = "position:fixed;left:"+r.left+"px;top:"+r.top+"px;width:"+r.width+"px;height:"+r.height+"px;pointer-events:none;z-index:70";
+    document.body.appendChild(box);
+    var cx = r.width/2, by = r.height, melt = kind === "melt", i;
+    if (melt){
+      var pud = document.createElement("div");
+      pud.style.cssText = "position:absolute;left:"+(cx-32)+"px;top:"+(by-8)+"px;width:64px;height:12px;border-radius:50%;background:radial-gradient(ellipse,rgba(160,210,248,.95),rgba(120,185,235,.5))";
+      box.appendChild(pud);
+      pud.animate([{transform:"scale(.2,.3)",opacity:0},{transform:"scale(1,1)",opacity:.95,offset:.35},{transform:"scale(1.5,1)",opacity:0}],{duration:2000,easing:"ease-out",fill:"forwards"});
+    }
+    for (i=0;i<(melt?18:26);i++){
+      var d = document.createElement("div"), sz = melt ? 5+Math.random()*6 : 0;
+      var dx = (Math.random()*2-1)*(melt?48:56), up = melt ? 16+Math.random()*34 : 18+Math.random()*42;
+      var dur = (520+Math.random()*420)*(melt?2.2:1.35);
+      if (melt){
+        d.style.cssText = "position:absolute;left:"+(cx-sz/2)+"px;top:"+(by-sz-6)+"px;width:"+sz+"px;height:"+sz+"px;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;background:rgba(116,188,242,.92)";
+        d.animate([{transform:"translate(0,0)",opacity:1},{transform:"translate("+(dx*.6)+"px,"+(-up)+"px)",opacity:1,offset:.45},{transform:"translate("+dx+"px,8px)",opacity:0}],{duration:dur,easing:"cubic-bezier(.3,.6,.5,1)",fill:"forwards"});
+      } else {
+        d.textContent = Math.random() < .5 ? "\u2726" : "\u2744";
+        d.style.cssText = "position:absolute;left:"+(cx-6)+"px;top:"+(by/2)+"px;font-size:"+(14+Math.random()*16)+"px;text-shadow:0 0 8px rgba(255,214,120,.95);color:"+(Math.random()<.5?"#f0b429":"#8cc4f2");
+        d.animate([{transform:"translate(0,0) scale(0)",opacity:1},{transform:"translate("+(dx*.7)+"px,"+(-up)+"px) scale(1.1)",opacity:1,offset:.5},{transform:"translate("+dx+"px,"+(-up-10)+"px) scale(0)",opacity:0}],{duration:dur+200,easing:"ease-out",fill:"forwards"});
+      }
+      box.appendChild(d);
+    }
+    setTimeout(function(){ box.remove(); }, 2800);
+  }
+  function talk(text, ms){ document.dispatchEvent(new CustomEvent("snowman-say",{detail:{text:text, ms:ms}})); }
+  function smShown(){ return S.snowman && (effTab() === "home" || S.smAll); }
+  function playSummon(){
+    var sm = document.getElementById("sman");
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!sm || calm) return;
+    sm.classList.remove("melt"); sm.classList.add("summon");
+    setTimeout(function(){ talk("I\u2019m back! Did anyone miss me? \u2603\uFE0F", 3200); }, 900);
+    var r2 = sm.getBoundingClientRect();
+    try { burst({left:r2.left, top:r2.top, width:r2.width, height:r2.height}, "star"); } catch(e){}
+    setTimeout(function(){ sm.classList.remove("summon"); }, 1800);
+  }
+  function toggleSnowman(){
+    if (smShown()){ S.smAll = false; setSnowman(false); render(); return; }
+    var away = effTab() !== "home";
+    if (away) S.smAll = true;                       // summoned on purpose: he follows you to every page
+    document.body.classList.toggle("off-home", effTab() !== "home" && !S.smAll);
+    if (S.snowman){ document.body.classList.remove("no-snowman"); render(); playSummon(); }
+    else { setSnowman(true); render(); }
+  }
+  function setSnowman(on){
+    if (on === S.snowman) return;
+    S.snowman = on;
+    try { localStorage.setItem("giftx.snowman", on ? "1" : "0"); } catch(e){}
+    var sm = document.getElementById("sman"), bubEl = document.querySelector(".sbub");
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!on){
+      var r = sm ? sm.getBoundingClientRect() : null;
+      if (r && r.width && !calm) talk("I\u2019m melting! Tell the carrots I loved them \uD83E\uDD55", 2100);
+      if (!sm || calm || !r || !r.width){ document.body.classList.add("no-snowman"); return; }
+      sm.classList.remove("summon"); sm.classList.add("melt");
+      try { burst({left:r.left, top:r.top, width:r.width, height:r.height}, "melt"); } catch(e){}
+      setTimeout(function(){ if (!S.snowman) document.body.classList.add("no-snowman"); }, 2000);
+    } else {
+      document.body.classList.remove("no-snowman");
+      if (!sm || calm) return;
+      sm.classList.remove("melt"); sm.classList.add("summon");
+      setTimeout(function(){ talk("I\u2019m back! Did anyone miss me? \u2603\uFE0F", 3200); }, 900);
+      var r2 = sm.getBoundingClientRect();
+      try { burst({left:r2.left, top:r2.top, width:r2.width, height:r2.height}, "star"); } catch(e){}
+      setTimeout(function(){ sm.classList.remove("summon"); }, 1800);
+    }
+  }
+  // two views: light (snowy sunrise photo) and night. Until the person picks one it follows the sun.
+  (function(){
+    var v = null;
+    try { v = localStorage.getItem("giftx.view"); if (!v && localStorage.getItem("giftx.light") === "1") v = "light"; } catch(e){}
+    S.view = (v === "light" || v === "night") ? v : null;
+  })();
+  function curView(){ return S.view || (isNight() ? "night" : "light"); }
+  function toggleView(){
+    S.view = curView() === "night" ? "light" : "night";
+    try { localStorage.setItem("giftx.view", S.view); } catch(e){}
+    var b = document.body;
+    b.classList.add("lg-morph"); applyTheme();
+    clearTimeout(toggleView.t); toggleView.t = setTimeout(function(){ b.classList.remove("lg-morph"); }, 900);
+    render();
+  }
+  // liquid glass look: on by default, remembered per browser
+  (function(){
+    S.glass = true;                      // liquid glass is always on
+    document.body.classList.add("lg");
+  })();
+  // light follows the finger / pointer across glass surfaces
+  (function(){
+    var raf = 0, ex = 0, ey = 0, els = [];
+    function upd(){
+      raf = 0;
+      els.forEach(function(el){ var r = el.getBoundingClientRect(); el.style.setProperty("--mx", (ex - r.left) + "px"); el.style.setProperty("--my", (ey - r.top) + "px"); });
+    }
+    function on(ev){
+      if (!S.glass || !ev.target || !ev.target.closest) return;
+      var a = ev.target.closest(".btn"), c = ev.target.closest(".card");
+      els = [a, c].filter(Boolean);
+      if (!els.length) return;
+      ex = ev.clientX; ey = ev.clientY;
+      if (!raf) raf = requestAnimationFrame(upd);
+    }
+    document.addEventListener("pointermove", on, {passive:true});
+    document.addEventListener("pointerdown", on, {passive:true});
+    // iPhone/iPad: pointer events stop once a drag turns into a scroll, but touch events keep coming
+    var lit = [], litT = 0;
+    function unlit(){ lit.forEach(function(e){ e.classList.remove("lit"); }); lit = []; }
+    function onTouch(ev){
+      if (!S.glass) return;
+      var t = ev.touches && ev.touches[0]; if (!t) return;
+      var e = document.elementFromPoint(t.clientX, t.clientY);
+      if (!e || !e.closest) return;
+      var a = e.closest(".btn"), c = e.closest(".card");
+      els = [a, c].filter(Boolean);
+      clearTimeout(litT);
+      if (!els.length){ unlit(); return; }
+      lit.forEach(function(x){ if (els.indexOf(x) < 0) x.classList.remove("lit"); });
+      els.forEach(function(x){ x.classList.add("lit"); }); lit = els.slice();
+      ex = t.clientX; ey = t.clientY;
+      if (!raf) raf = requestAnimationFrame(upd);
+    }
+    function offTouch(){ clearTimeout(litT); litT = setTimeout(unlit, 420); }
+    document.addEventListener("touchstart", onTouch, {passive:true});
+    document.addEventListener("touchmove", onTouch, {passive:true});
+    document.addEventListener("touchend", offTouch, {passive:true});
+    document.addEventListener("touchcancel", offTouch, {passive:true});
+  })();
+  (function(){
+    var v = null;
+    try { v = localStorage.getItem("giftx.snowman"); } catch(e){}
+    S.snowman = v !== "0";
+    document.body.classList.toggle("no-snowman", !S.snowman);
+  })();
+
+  function norm(s){ return String(s||"").trim().toLowerCase().replace(/\s+/g," "); }
+  function me(){ return S.people.find(function(p){ return p.id === S.sid; }) || null; }
+  function upsertPerson(id, data){
+    var rec = Object.assign({}, data, {id:id}), found = false;
+    S.people = S.people.map(function(p){ if (p.id === id){ found = true; return rec; } return p; });
+    if (!found) S.people.push(rec);
+  }
+  function isOrg(){ return !!S.canEdit; }   // organizer = an account listed in the admins collection (set in the Firebase console)
+  function byId(id){ return S.people.find(function(p){ return p.id === id; }) || null; }
+  function famOf(p){
+    var raw = norm(p.family || p.household);
+    for (var i=0;i<FAMILIES.length;i++) if (norm(FAMILIES[i]) === raw) return FAMILIES[i];
+    return p.family || p.household || "Other";
+  }
+  function hue(str){ var n=0; for (var i=0;i<str.length;i++) n=(n*31+str.charCodeAt(i))>>>0; return n%360; }
+  function rawAvatar(p, size){
+    size = size || 40;
+    var style = "width:"+size+"px;height:"+size+"px;";
+    if (p && typeof p.photo === "string" && p.photo.indexOf("data:image/") === 0)
+      return h("img",{class:"avatar",style:style,src:p.photo,alt:""});
+    var nm = (p && p.name) || "?";
+    var ini = nm.trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||"";}).join("").toUpperCase() || "?";
+    return h("div",{class:"avatar",style:style+"background:hsl("+hue(nm)+",32%,42%);font-size:"+Math.round(size*0.38)+"px"}, ini);
+  }
+  var FRAMES = [["none","None",""],["gold","Gold","linear-gradient(135deg,#f7e08a,#c9962f 50%,#f7e08a)"],
+    ["holiday","Holiday","repeating-conic-gradient(#c0392b 0 15deg,#2f8f5b 15deg 30deg)"],["snow","Snow","linear-gradient(135deg,#ffffff,#cfe0f5)"],
+    ["sunset","Sunset","linear-gradient(135deg,#ff9a5a,#ff5e7e 55%,#8e5bd6)"],["pine","Pine","linear-gradient(135deg,#2f8f5b,#173b2c)"]];
+  function frameBg(k){ for (var i=0;i<FRAMES.length;i++) if (FRAMES[i][0]===k) return FRAMES[i][2]; return ""; }
+  function framed(k, inner, size){
+    var bg = frameBg(k); if (!bg) return inner;
+    var r = Math.min(10, Math.max(3, Math.round(size*0.07)));
+    inner.style.boxShadow = "0 0 0 2px rgba(255,255,255,.92)";
+    return h("span",{class:"fr",style:"padding:"+r+"px;background:"+bg}, inner);
+  }
+  function avatar(p, size){ return framed(p && p.frame, rawAvatar(p, size), size || 40); }
+  function linkify(text){
+    var out = [], re = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi, last = 0, m;
+    while ((m = re.exec(text))){
+      if (m.index > last) out.push(text.slice(last, m.index));
+      var raw = m[0].replace(/[.,;:!?)]+$/,"");
+      var href = /^www\./i.test(raw) ? "https://" + raw : raw;
+      var label = raw;
+      try { var u = new URL(href); label = u.hostname.replace(/^www\./,"") + (u.pathname.length > 1 ? "/…" : ""); } catch(e){}
+      out.push(h("a",{href:href,target:"_blank",rel:"noopener noreferrer"}, label + " ↗"));
+      last = m.index + raw.length;
+      re.lastIndex = last;
+    }
+    if (last < text.length) out.push(text.slice(last));
+    return out;
+  }
+  var PREV = {};
+  function urlIn(text){
+    var m = /(https?:\/\/[^\s]+|www\.[^\s]+)/i.exec(String(text||"")); if (!m) return "";
+    var raw = m[0].replace(/[.,;:!?)]+$/,"");
+    return /^www\./i.test(raw) ? "https://" + raw : raw;
+  }
+  function fetchPreview(url, cb){
+    if (PREV[url]) return cb(PREV[url]);
+    var done = false;
+    function fin(v){ if (done) return; done = true; PREV[url] = v; cb(v); }
+    setTimeout(function(){ fin({image:"",title:""}); }, 6000);
+    try {
+      fetch("https://api.microlink.io/?url=" + encodeURIComponent(url)).then(function(r){ return r.json(); }).then(function(j){
+        var d = (j && j.data) || {};
+        fin({image:(d.image && d.image.url) || (d.logo && d.logo.url) || "", title:d.title || ""});
+      }).catch(function(){ fin({image:"",title:""}); });
+    } catch(e){ fin({image:"",title:""}); }
+  }
+  function linkCard(url){
+    var host = ""; try { host = new URL(url).hostname.replace(/^www\./,""); } catch(e){}
+    var ph = h("img",{class:"ph",alt:""}), t = h("div",{class:"t"}, host);
+    var a = h("a",{class:"lcard",href:url,target:"_blank",rel:"noopener noreferrer"}, ph,
+      h("div",{class:"meta"}, t, h("div",{class:"d"}, host + " \u2197")));
+    var fav = "https://www.google.com/s2/favicons?sz=128&domain=" + encodeURIComponent(host);
+    var shot = "https://s0.wp.com/mshots/v1/" + encodeURIComponent(url) + "?w=480&h=300";
+    var srcs = [], idx = 0;
+    ph.onerror = function(){ idx++; if (idx < srcs.length){ ph.src = srcs[idx]; if (idx === srcs.length-1) ph.classList.add("fav"); } else ph.style.display = "none"; };
+    fetchPreview(url, function(pv){
+      if (pv.title) t.textContent = pv.title;
+      srcs = (pv.image ? [pv.image] : []).concat([shot, fav]);
+      idx = 0; ph.src = srcs[0];
+    });
+    return a;
+  }
+  function resizeToAvatar(file){
+    return new Promise(function(res, rej){
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function(){
+        var s = Math.min(img.width, img.height), c = document.createElement("canvas");
+        c.width = c.height = 256;
+        c.getContext("2d").drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, 256, 256);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("bad image")); };
+      img.src = url;
+    });
+  }
+
+  // ---------- sign in / sign up (Firebase Auth: email + password) ----------
+  function emailOk(x){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); }
+  function authMsg(e){
+    var c = (e && e.code) || "";
+    if (c === "auth/invalid-credential" || c === "auth/wrong-password" || c === "auth/user-not-found" || c === "auth/invalid-login-credentials") return "That email and password don't match. Check them, or tap \u201cForgot password\u201d.";
+    if (c === "auth/email-already-in-use") return "That email already has an account. Use Sign in instead.";
+    if (c === "auth/weak-password") return "Choose a password with at least 6 characters.";
+    if (c === "auth/invalid-email") return "That email address doesn't look right.";
+    if (c === "auth/too-many-requests") return "Too many tries. Wait a few minutes, then try again.";
+    if (c === "auth/network-request-failed") return "No connection. Check your internet and try again.";
+    return "Something went wrong. Please try again.";
+  }
+  function rebuildDraw(){
+    var mine = null;
+    if (S.sid && S.mine){ mine = {}; mine[S.sid] = S.mine; }
+    S.draw = S.meta ? Object.assign({}, S.meta, {assignments: mine || {}}) : null;
+  }
+  function stopWatch(){
+    if (S.unMine){ try { S.unMine(); } catch(e){} S.unMine = null; }
+    S.mine = null; S.canEdit = false; rebuildDraw();
+  }
+  function watchUser(uid){
+    stopWatch();
+    S.db.doc("admins/"+uid).get().then(function(sn){ if (S.sid === uid){ S.canEdit = !!sn.exists; liveRender(); } }).catch(function(){});
+    S.unMine = S.db.doc("matches/"+uid).onSnapshot(function(sn){
+      S.mine = sn.exists ? ((sn.data() || {}).target || null) : null; rebuildDraw(); liveRender();
+    }, function(){});
+  }
+  function onAuth(u){
+    var uid = u ? u.uid : null;
+    S.gotAuth = true;
+    if (S.authInit && uid === S.sid){ return liveRender(); }
+    S.authInit = true; S.sid = uid; S.email = u ? u.email : "";
+    if (!uid){
+      stopWatch(); S.draft = null; S.dirty = false; S.saving = false; S.msg = null; S.tab = "home"; S.confirm = null;
+      return render();
+    }
+    S.lastU = u.email; try { localStorage.setItem("giftx.u", u.email); } catch(e){}
+    watchUser(uid);
+    if (!S.signingUp){
+      S.draft = null; S.dirty = false; S.saving = false; S.msg = null; S.auth = {u:"",p:"",p2:"",np:""};
+      S.needCheck = !S.gotPeople;
+      S.tab = (S.gotPeople && !me()) ? "me" : "home";
+    }
+    render();
+  }
+  function signOut(){ try { S.fb.auth.signOut(); } catch(e){} }
+  async function signIn(){
+    var em = S.auth.u.trim().toLowerCase(), pw = S.auth.p;
+    if (!em || !pw){ S.msg = {t:"err", s:"Enter your email and password."}; return render(); }
+    S.saving = true; S.msg = null; render();
+    try {
+      await S.fb.auth.signIn(em, pw);
+      S.saving = false; S.auth = {u:"",p:"",p2:"",np:""}; S.msg = null; render();
+    } catch(e){ S.saving = false; S.msg = {t:"err", s:authMsg(e)}; render(); }
+  }
+  async function forgotPw(email){
+    var em = String(email||"").trim().toLowerCase();
+    if (!emailOk(em)){ S.msg = {t:"err", s:"Type your email above first, then tap \u201cForgot password\u201d."}; return render(); }
+    try { await S.fb.auth.reset(em); S.msg = {t:"ok", s:"If "+em+" has an account, a reset link is on its way. Check your spam folder too."}; }
+    catch(e){ S.msg = {t:"err", s:authMsg(e)}; }
+    render();
+  }
+
+  // ---------- draw ----------
+  function shuffle(a){ a = a.slice(); for (var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+  function makeDraw(people){
+    if (people.length < 2) return null;
+    function key(p){ var f = norm(p.family || p.household); return (!f || f === "other") ? ("solo:"+p.id) : f; }
+    var size = {};
+    people.forEach(function(p){ size[key(p)] = (size[key(p)]||0)+1; });
+    var givers = shuffle(people).sort(function(a,b){ return size[key(b)] - size[key(a)]; });
+    var taken = {}, result = {}, steps = 0;
+    function go(i){
+      if (i === givers.length) return true;
+      if (++steps > 200000) return false;
+      var g = givers[i], cands = shuffle(people);
+      for (var c = 0; c < cands.length; c++){
+        var r = cands[c];
+        if (taken[r.id] || key(r) === key(g)) continue;
+        taken[r.id] = true; result[g.id] = r.id;
+        if (go(i+1)) return true;
+        delete taken[r.id]; delete result[g.id];
+      }
+      return false;
+    }
+    return go(0) ? result : null;
+  }
+
+  // ---------- roster / status ----------
+  function groups(){
+    var g = {}; FAMILIES.forEach(function(f){ g[f] = []; });
+    var claimed = {};
+    S.people.forEach(function(p){ if (p.rosterId) claimed[p.rosterId] = p; });
+    var rosterIds = {};
+    S.roster.forEach(function(r){
+      rosterIds[r.id] = true;
+      var p = claimed[r.id];
+      (g[r.family] || (g[r.family] = [])).push({name:p ? p.name : r.name, person:p||null, inn:!!p});
+    });
+    S.people.forEach(function(p){
+      if (p.rosterId && rosterIds[p.rosterId]) return;
+      var f = famOf(p);
+      (g[f] || (g[f] = [])).push({name:p.name, person:p, inn:true});
+    });
+    Object.keys(g).forEach(function(f){
+      g[f].sort(function(a,b){ return (b.inn - a.inn) || norm(a.name).localeCompare(norm(b.name)); });
+    });
+    return g;
+  }
+
+  // ---------- draft ----------
+  function initDraft(){
+    var m = me();
+    S.draft = m
+      ? { family:famOf(m), rosterId:m.rosterId||"", name:m.name||"", photo:m.photo||"", frame:m.frame||"none", items:(m.wishlist||[]).slice() }
+      : { family:"", rosterId:"", name:"", photo:"", frame:"none", items:[""] };
+    if (!S.draft.items.length) S.draft.items = [""];
+    S.dirty = false;
+  }
+
+  async function saveProfile(){
+    var d = S.draft, name = d.name.trim(), existing = me();
+    var needAcct = !existing && !S.sid, em = S.auth.u.trim().toLowerCase();
+    function bad(t){ S.msg = {t:"err", s:t}; render(); }
+    if (needAcct){
+      if (!emailOk(em)) return bad("Enter a valid email address. You'll use it to sign in.");
+      if (S.auth.p.length < 6) return bad("Choose a password with at least 6 characters.");
+      if (S.auth.p !== S.auth.p2) return bad("The two passwords don't match.");
+    }
+    if (!d.family) return bad("Please choose your family.");
+    if (!name) return bad("Please enter your name.");
+    if (!existing && norm(name) === ORG_NAME && d.rosterId !== ORG_ID) return bad("That name is the organizer's. Pick it from the family list instead of typing it.");
+    var items = d.items.map(function(x){ return x.trim().slice(0,500); }).filter(Boolean).slice(0,25);
+    S.saving = true; S.msg = null; render();
+    try {
+      var uid = existing ? existing.id : S.sid;
+      if (needAcct){ S.signingUp = true; var cr = await S.fb.auth.signUp(em, S.auth.p); uid = cr.uid; S.sid = uid; S.email = cr.email; try { localStorage.setItem("giftx.u", em); } catch(e){} }
+      var rec = {name:name, family:d.family, household:d.family, rosterId:d.rosterId||"", photo:d.photo||"", frame:d.frame||"none", wishlist:items,
+        joinedAt: existing && existing.joinedAt ? existing.joinedAt : Date.now(), updatedAt: Date.now()};
+      await S.db.doc("participants/"+uid).set(rec);
+      upsertPerson(uid, rec);
+      S.saving = false; S.dirty = false; S.draft = null; S.ed = null; S.signingUp = false;
+      if (!existing){ S.auth = {u:"",p:"",p2:"",np:""}; S.tab = "home"; S.msg = {t:"ok", s:"Welcome! You're in."}; }
+      else S.msg = {t:"ok", s:"Saved."};
+    } catch(e){
+      S.saving = false; S.signingUp = false;
+      var denied = e && e.code === "permission-denied";
+      S.msg = {t:"err", s: needAcct && e && /^auth\//.test(e.code||"") ? authMsg(e)
+        : denied ? (S.meta ? "Sign-ups closed when the names were drawn. Ask the organizer if you still need to join." : "Couldn't save. Please sign out, sign back in and try again.")
+        : "Couldn't save just now. Please try again."};
+    }
+    render();
+  }
+  async function resetMine(){
+    try { await S.fb.auth.reset(S.email); S.msg = {t:"ok", s:"A password reset link is on its way to "+S.email+"."}; }
+    catch(e){ S.msg = {t:"err", s:authMsg(e)}; }
+    render();
+  }
+  async function runDraw(){
+    var res = makeDraw(S.people);
+    if (!res){
+      S.orgMsg = {t:"err", s:"No valid draw is possible with the current sign-ups. Usually one family is more than half of everyone who has joined."};
+      S.confirm = null; return render();
+    }
+    try {
+      var now = Date.now();
+      var ops = Object.keys(res).map(function(g){ return {t:"set", path:"matches/"+g, data:{target:res[g], drawnAt:now}}; });
+      ops.push({t:"set", path:"meta/draw", data:{drawnAt:now, count:S.people.length}});
+      await S.db.batch(ops);
+      S.orgMsg = {t:"ok", s:"Names drawn. Everyone can now open \u201cMy match\u201d."};
+    } catch(e){ S.orgMsg = {t:"err", s:"Couldn't save the draw. Please try again."}; }
+    S.confirm = null; render();
+  }
+  async function clearDraw(){
+    try {
+      var ops = S.people.map(function(p){ return {t:"delete", path:"matches/"+p.id}; });
+      ops.push({t:"delete", path:"meta/draw"});
+      await S.db.batch(ops);
+      S.orgMsg = {t:"ok", s:"Draw cleared."};
+    } catch(e){ S.orgMsg = {t:"err", s:"Couldn't clear the draw."}; }
+    S.confirm = null; render();
+  }
+  async function removePerson(id){
+    var gone = byId(id), nm = gone ? gone.name : "That person";
+    try {
+      await S.db.batch([{t:"delete", path:"participants/"+id}, {t:"delete", path:"matches/"+id}]);
+      S.people = S.people.filter(function(p){ return p.id !== id; });
+      S.orgMsg = {t:"ok", w:"people", s:nm+" was removed. If names were already drawn, run the draw again."};
+    } catch(e){ S.orgMsg = {t:"err", w:"people", s:"Couldn't remove that person."}; }
+    S.confirm = null; render();
+  }
+  async function addRoster(){
+    var name = S.rd.name.trim();
+    if (!name) return;
+    try {
+      await S.db.collection("roster").add({name:name.slice(0,60), family:S.rd.family});
+      S.rd.name = ""; S.orgMsg = null;
+    } catch(e){ S.orgMsg = {t:"err", s:"Couldn't add that name."}; }
+    render();
+  }
+  async function removeRoster(id){
+    try { await S.db.doc("roster/"+id).delete(); } catch(e){ S.orgMsg = {t:"err", s:"Couldn't remove that name."}; }
+    S.confirm = null; render();
+  }
+
+  // ---------- views ----------
+  // gentle snowfall drifting through the header (stops by itself when the header is re-rendered or hidden)
+  function headerSnow(cv){
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var ctx = cv.getContext("2d"), fl = [], w = 0, h2 = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), last = 0, onScreen = true;
+    // pre-rendered soft flake sprites (drawImage is far cheaper than blurred arcs every frame)
+    function sprite(r, glow){
+      var c = document.createElement("canvas"), n = Math.ceil((r + glow) * 2 * dpr) + 2; c.width = c.height = n;
+      var x = c.getContext("2d"), m = n / 2, g = x.createRadialGradient(m, m, 0, m, m, m);
+      g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(Math.max(.1, r / (r + glow) * .7), "rgba(255,255,255,.95)"); g.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = g; x.fillRect(0, 0, n, n); return c;
+    }
+    var spr = [sprite(.9, 1.6), sprite(1.5, 2.2), sprite(2.2, 3)];
+    function size(){
+      var cw = cv.clientWidth, ch = cv.clientHeight;
+      if (!cw || !ch || (cw === w && ch === h2)) return;
+      w = cw; h2 = ch; cv.width = Math.round(w*dpr); cv.height = Math.round(h2*dpr);
+      ctx.setTransform(1,0,0,1,0,0);
+      var n = Math.max(40, Math.min(90, Math.round(w*h2/2600)));
+      fl = [];
+      for (var i=0;i<n;i++){ var k = Math.random()<.55 ? 0 : (Math.random()<.7 ? 1 : 2); fl.push({x:Math.random()*w, y:Math.random()*h2, k:k, v:.28+Math.random()*.7, d:Math.random()*6.28, s:.004+Math.random()*.01, a:.4+Math.random()*.55}); }
+    }
+    if ("IntersectionObserver" in window){ new IntersectionObserver(function(e){ onScreen = e[0].isIntersecting; }).observe(cv); }
+    function frame(t){
+      if (!cv.isConnected) return;
+      requestAnimationFrame(frame);
+      if (document.hidden || !onScreen || t - last < 33) return;   // ~30fps, paused when off-screen
+      last = t; size(); if (!w) return;
+      ctx.clearRect(0,0,cv.width,cv.height);
+      for (var i=0;i<fl.length;i++){
+        var f = fl[i];
+        if (!calm){ f.y += f.v; f.d += f.s*30; f.x += Math.sin(f.d)*.28; }
+        if (f.y > h2 + 6){ f.y = -6; f.x = Math.random()*w; }
+        if (f.x < -6) f.x = w + 6; else if (f.x > w + 6) f.x = -6;
+        var im = spr[f.k]; ctx.globalAlpha = f.a;
+        ctx.drawImage(im, (f.x*dpr) - im.width/2, (f.y*dpr) - im.height/2);
+      }
+      ctx.globalAlpha = 1;
+    }
+    requestAnimationFrame(frame);
+  }
+  function topbar(){
+    var m = me();
+    var snowCv = h("canvas",{class:"hsnow","aria-hidden":"true"});
+    setTimeout(function(){ headerSnow(snowCv); }, 0);
+    return h("header",{class:"top"}, snowCv,
+      h("div",null, h("div",{class:"eyebrow"},"Christmas 2026", h("span",{class:"sep"},"\u00B7"), h("span",{class:"bud"},"$"+BUDGET+" limit")), h("h1",null,"Family Gift Exchange")),
+      h("div",{class:"top-r"},
+        h("button",{class:"quiet",type:"button",onclick:function(){ if (!document.querySelector(".intro")) intro(); }},"Replay welcome"),
+        h("button",{class:"quiet",type:"button","aria-pressed":smShown()?"true":"false",onclick:toggleSnowman}, smShown() ? "Remove snowman" : "Summon snowman"),
+        h("button",{class:"viewsw"+(curView()==="night"?" is-night":""),type:"button",role:"switch","aria-checked":curView()==="night"?"true":"false","aria-label":"Switch between light view and night view",onclick:toggleView},
+          h("span",{class:"vs-opt vs-l"}, h("i",{class:"vs-ic","aria-hidden":"true"},"\u2600"), "Light"), h("span",{class:"vs-opt vs-n"}, h("i",{class:"vs-ic","aria-hidden":"true"},"\u263E"), "Night")),
+        m ? avatar(m,36) : null,
+        m ? h("button",{class:"btn ghost small",onclick:signOut},"Sign out") : null));
+  }
+  function tabsBar(){
+    var m = me();
+    var tabs = [["home","Home"]];
+    if (m){ tabs.push(["match","My match"]); tabs.push(["me","My profile"]); }
+    else { tabs.push(["in","Sign in"]); tabs.push(["me","Create profile"]); }
+    var go = function(k){ return function(){
+      if (S.tab==="me" && S.dirty){ S.draft=null; S.dirty=false; } S.ed=null;
+      S.tab=k; S.msg=null; S.orgMsg=null; S.saving=false; S.confirm=null; render();
+    }; };
+    var items = tabs.map(function(t){
+      return h("button",{class:"tab",role:"tab","aria-selected":S.tab===t[0]?"true":"false",onclick:go(t[0])}, t[1]);
+    });
+    if (isOrg()) items.push(
+      h("button",{class:"fun",role:"tab",type:"button","aria-selected":S.tab==="org"?"true":"false",onclick:go("org")},
+        h("span",{class:"sp s1","aria-hidden":"true"},"\u2726"), h("span",{class:"lbl"},"Add Family Member"),
+        h("span",{class:"sp s2","aria-hidden":"true"},"\u2726"), h("span",{class:"sp s3","aria-hidden":"true"},"\u2727"), h("span",{class:"sp s4","aria-hidden":"true"},"\u2727")));
+    return h("nav",{class:"tabs",role:"tablist"}, items);
+  }
+  function note(m){ return m ? h("div",{class:"note "+(m.t==="err"?"err":"ok")}, m.s) : null; }
+
+  // tap a family member: a small profile card pops up; tapping anywhere else (or Esc) dismisses it
+  function closeProfile(now){
+    var pp = document.querySelector(".pp"); if (!pp) return;
+    document.removeEventListener("keydown", closeProfile.k);
+    if (now){ pp.remove(); return; }
+    pp.classList.add("out"); setTimeout(function(){ pp.remove(); }, 220);
+  }
+  function first(n){ return String(n||"").split(" ")[0]; }
+  // one wishlist line: the item's name, plus a product picture card when it has a link (name only when it doesn't)
+  function wishItem(t){
+    var u = urlIn(t), label = String(t||"").replace(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi,"").replace(/\s+/g," ").trim();
+    return h("li",null, h("span",{class:"wi"}, label ? h("span",{class:"wn"}, label) : null, u ? linkCard(u) : (label ? null : t)));
+  }
+  function openProfile(x, fam){
+    closeProfile(true);
+    var pr = x.person, list = (pr && pr.wishlist) || [], joined = !!pr, you = !!(pr && pr.id === S.sid), when = "";
+    if (joined && pr.joinedAt){ try { when = new Date(pr.joinedAt).toLocaleDateString(undefined, {month:"long", day:"numeric"}); } catch(e){} }
+    var back = h("div",{class:"pp",onclick:function(ev){ if (ev.target === back) closeProfile(); }},
+      h("div",{class:"pp-card",role:"dialog","aria-modal":"true","aria-label":x.name+" profile"},
+        h("button",{class:"pp-x",type:"button","aria-label":"Close",onclick:function(){ closeProfile(); }},"\u00d7"),
+        h("div",{class:"pp-av"}, avatar(pr || {name:x.name}, 108)),
+        h("h3",{class:"pp-name"}, x.name),
+        h("p",{class:"pp-fam"}, (pr ? famOf(pr) : fam) || ""),
+        h("div",{class:"pp-tags"},
+          you ? h("span",{class:"chip you"},"You") : null,
+          h("span",{class:"chip "+(joined?"joined":"out")}, joined ? "Joined" : "Not yet")),
+        h("p",{class:"pp-note"}, joined ? (when ? "Joined the exchange on "+when+"." : "In the exchange.") : "Hasn\u2019t joined yet. They\u2019ll show up here once they pick their name."),
+        joined ? h("div",{class:"pp-wl"},
+          h("h4",null, first(x.name)+"\u2019s wishlist"),
+          list.length ? h("ul",{class:"wish"}, list.map(wishItem)) : h("p",{class:"pp-note",style:"margin-top:6px"},"Nothing added yet.")) : null,
+        you ? h("button",{class:"btn small",type:"button",onclick:function(){ closeProfile(true); S.tab = "me"; S.msg = null; render(); }},"Edit my profile") : null));
+    document.body.appendChild(back);
+    closeProfile.k = function(ev){ if (ev.key === "Escape") closeProfile(); };
+    document.addEventListener("keydown", closeProfile.k);
+    var cb = back.querySelector(".pp-x"); if (cb) try { cb.focus({preventScroll:true}); } catch(e){}
+  }
+  // family cards can be folded; on phones they all start folded
+  function loadFold(){
+    if (S.fold) return;
+    S.fold = {};
+    try { var o = JSON.parse(localStorage.getItem("giftx.fold") || "{}"); if (o && typeof o === "object") S.fold = o; } catch(e){}
+  }
+  function isFolded(f){
+    loadFold();
+    if (S.auto && f in S.auto) return S.auto[f];        // opened by the welcome-page entrance
+    if (f in S.fold) return S.fold[f];                 // the person's own choice (remembered)
+    return window.innerWidth <= 600;
+  }
+  var fold_secs = null, fold_btn = null, fold_names = [];
+  function setFold(f, closed, auto){
+    loadFold();
+    if (auto === true){ if (!S.auto) S.auto = {}; S.auto[f] = closed; }
+    else {
+      S.fold[f] = closed; if (S.auto) delete S.auto[f];
+      try { localStorage.setItem("giftx.fold", JSON.stringify(S.fold)); } catch(e){}
+    }
+    (fold_secs||[]).forEach(function(o){
+      if (o.f !== f) return;
+      if (!closed){ o.sec.classList.add("opening"); clearTimeout(o.t); o.t = setTimeout(function(){ o.sec.classList.remove("opening"); }, 900); }
+      o.sec.classList.toggle("closed", closed); o.head.setAttribute("aria-expanded", closed ? "false" : "true");
+      if (closed) o.inner.setAttribute("inert",""); else o.inner.removeAttribute("inert");
+    });
+    syncAll();
+  }
+  // coming in from the welcome page: the family boxes unfold one after another
+  document.addEventListener("intro-out", function(){
+    if (effTab() !== "home") return;
+    var n = 0;
+    (fold_names || []).forEach(function(f){
+      if (!isFolded(f)) return;
+      setTimeout(function(){ setFold(f, false, true); }, 250 + (n++) * 170);
+    });
+  });
+  function syncAll(){
+    if (!fold_btn) return;
+    var shut = fold_names.every(isFolded);
+    fold_btn.lastChild.textContent = shut ? "Expand all" : "Collapse all";
+    fold_btn.classList.toggle("allclosed", shut);
+  }
+  function homeView(){
+    var secs = []; fold_secs = secs;
+    var allBtn = h("button",{class:"foldall",type:"button",onclick:function(){
+      var shut = !fold_names.every(isFolded);
+      fold_names.forEach(function(f){ setFold(f, shut); });
+    }}, h("span",{class:"fa-ico","aria-hidden":"true"}), h("span",{class:"fa-lbl"})); fold_btn = allBtn;
+    var g = groups(), inN = 0, tot = 0;
+    Object.keys(g).forEach(function(f){ g[f].forEach(function(x){ tot++; if (x.inn) inN++; }); });
+    var m = me(), first = m ? (m.name||"").split(" ")[0] : "";
+    var line;
+    if (!m) line = "Sign in to see your match, or create a profile to join.";
+    else if (S.draw && S.draw.assignments && S.draw.assignments[S.sid]) line = "Names are drawn. Your match is ready.";
+    else if (S.draw && S.draw.assignments) line = "You joined after the draw. Ask the organizer to redraw.";
+    else line = "You're in. Names haven't been drawn yet.";
+    var pick = (m && S.draw && S.draw.assignments) ? byId(S.draw.assignments[S.sid]) : null;
+    var names = Object.keys(g).sort(function(a,b){
+      var ia = FAMILIES.indexOf(a), ib = FAMILIES.indexOf(b);
+      return (ia<0?99:ia) - (ib<0?99:ib);
+    }).filter(function(f){ return g[f].length || (FAMILIES.indexOf(f) >= 0 && f !== "Other"); });
+    fold_names = names; syncAll();
+    return h("div",null,
+      h("div",{class:"card"},
+        h("div",{class:"status"},
+          h("div",null, h("div",{class:"big"}, inN, h("small",null, tot ? " of "+tot+" in" : " in"))),
+          h("div",{class:"grow"},
+            h("h2",null, m ? "Hi, "+first : "Welcome"),
+            h("p",{class:"sub"}, line),
+            tot ? h("div",{class:"bar"}, h("i",{style:"width:"+Math.round(inN/tot*100)+"%"})) : null),
+          !m ? h("div",{class:"actions",style:"margin:0"}, h("button",{class:"btn",onclick:function(){ S.tab="in"; render(); }},"Sign in"), h("button",{class:"btn ghost",onclick:function(){ S.tab="me"; render(); }},"Create profile")) : null)),
+      note(S.msg),
+      pick ? h("div",{class:"card",style:"display:flex;align-items:center;gap:16px;flex-wrap:wrap"},
+        avatar(pick,56),
+        h("div",{class:"grow"}, h("div",{class:"eyebrow"},"You drew"), h("h2",null,pick.name), h("p",{class:"sub"},famOf(pick)+" · $"+BUDGET+" limit")),
+        h("button",{class:"btn",onclick:function(){ S.tab="match"; render(); }},"See wishlist")) : null,
+      h("div",{class:"fam-ctl"}, allBtn),
+      h("div",{class:"fams"}, names.map(function(f){
+        var list = g[f], c = list.filter(function(x){ return x.inn; }).length;
+        var closed = isFolded(f);
+        var head = h("button",{class:"fam-h",type:"button","aria-expanded":closed?"false":"true",onclick:function(){ setFold(f, !isFolded(f)); }},
+          h("h3",null,f), h("span",{class:"count"}, list.length ? c+" of "+list.length+" in" : "No one yet"), h("span",{class:"chev","aria-hidden":"true"}));
+        var inner = h("div",{class:"fam-bi"}, list.length ? list.map(function(x){
+            var isYou = x.person && x.person.id === S.sid;
+            return h("div",{class:"mrow clk"+(x.inn?"":" pending"),role:"button",tabindex:"0","aria-haspopup":"dialog","aria-label":"View "+x.name+"'s profile",
+              onclick:function(){ openProfile(x, f); },
+              onkeydown:function(ev){ if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); openProfile(x, f); } }},
+              avatar(x.person || {name:x.name}, 36),
+              h("span",{class:"nm"}, x.name),
+              isYou ? h("span",{class:"chip you"},"You") : null,
+              h("span",{class:"chip "+(x.inn?"joined":"out")}, x.inn ? "Joined" : "Not yet"));
+          }) : h("div",{class:"none"},"Members will appear here once the organizer adds names or they join."));
+        var sec = h("section",{class:"card fam"+(closed?" closed":"")}, head, h("div",{class:"fam-b"}, inner));
+        if (closed) inner.setAttribute("inert","");
+        secs.push({f:f, sec:sec, head:head, inner:inner});
+        return sec;
+      })));
+  }
+
+  function signInView(){
+    var a = S.auth;
+    if (!a.u && S.lastU) a.u = S.lastU;
+    function go(ev){ if (ev.key === "Enter") signIn(); }
+    return h("div",{class:"card"},
+      h("h2",null,"Sign in"),
+      h("p",{class:"sub"},"Use the email and password you created for this page."),
+      note(S.msg),
+      h("label",{for:"si-u"},"Email"),
+      h("input",{id:"si-u",type:"text",inputmode:"email",value:a.u,autocomplete:"email",autocapitalize:"none",spellcheck:"false",oninput:function(ev){ a.u=ev.target.value; },onkeydown:go}),
+      h("label",{for:"si-p"},"Password"),
+      h("input",{id:"si-p",type:"password",value:a.p,autocomplete:"current-password",oninput:function(ev){ a.p=ev.target.value; },onkeydown:go}),
+      h("div",{class:"actions"},
+        h("button",{class:"btn",disabled:S.saving,onclick:signIn}, S.saving ? "Signing in\u2026" : "Sign in"),
+        h("button",{class:"btn ghost",onclick:function(){ S.tab="me"; S.msg=null; render(); }},"Create a profile")),
+      h("p",{class:"hint"},"Forgot your password? ", h("a",{href:"#",onclick:function(ev){ ev.preventDefault(); forgotPw(a.u); }},"Email me a reset link"), "."));
+  }
+
+  function openEditor(src){
+    function bad(){ S.msg = {t:"err", s:"That photo couldn't be read. Try a JPG or PNG."}; render(); }
+    function go(url){
+      var im = new Image();
+      im.onload = function(){ S.ed = {img:im, iw:im.naturalWidth, ih:im.naturalHeight, zoom:1, ox:0, oy:0}; S.msg = null; render(); };
+      im.onerror = bad; im.src = url;
+    }
+    if (typeof src === "string") return go(src);
+    var fr = new FileReader(); fr.onload = function(){ go(fr.result); }; fr.onerror = bad; fr.readAsDataURL(src);
+  }
+  function frameChips(d){
+    return h("div",null, h("label",null,"Frame"),
+      h("div",{class:"pick"}, FRAMES.map(function(f){
+        return h("button",{type:"button",class:"opt"+((d.frame||"none")===f[0]?" on":""),onclick:function(){ d.frame = f[0]; S.dirty = true; render(); }}, f[1]);
+      })));
+  }
+  function photoRow(d, fileInput){
+    return h("div",null,
+      h("div",{class:"photo-pick",style:"margin-top:18px"},
+        avatar({name:d.name||"?",photo:d.photo,frame:d.frame},76),
+        h("div",null,
+          h("button",{class:"btn ghost small",type:"button",onclick:function(){ fileInput.click(); }}, d.photo ? "Change photo" : "Add profile picture"),
+          d.photo ? h("button",{class:"btn ghost small",type:"button",style:"margin-left:6px",onclick:function(){ openEditor(d.photo); }},"Adjust") : null,
+          d.photo ? h("button",{class:"x",type:"button",style:"font-size:13px;margin-left:4px",onclick:function(){ d.photo=""; S.dirty=true; render(); }},"remove") : null,
+          fileInput)),
+      frameChips(d));
+  }
+  function editor(d){
+    var ed = S.ed, V = 240, drag = null;
+    var im = h("img",{src:ed.img.src,alt:"",draggable:"false",style:"position:absolute;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none"});
+    var slider;
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+    function geom(){ var sc = V/Math.min(ed.iw,ed.ih)*ed.zoom; return {sc:sc, w:ed.iw*sc, h:ed.ih*sc}; }
+    function place(){
+      var g = geom(), mx = Math.max(0,(g.w-V)/2), my = Math.max(0,(g.h-V)/2);
+      ed.ox = clamp(ed.ox,-mx,mx); ed.oy = clamp(ed.oy,-my,my);
+      im.style.width = g.w+"px"; im.style.height = g.h+"px";
+      im.style.left = (V/2+ed.ox-g.w/2)+"px"; im.style.top = (V/2+ed.oy-g.h/2)+"px";
+    }
+    var vp = h("div",{class:"vp",style:"width:"+V+"px;height:"+V+"px"}, im);
+    vp.addEventListener("pointerdown", function(e){ drag = {x:e.clientX,y:e.clientY,ox:ed.ox,oy:ed.oy}; try { vp.setPointerCapture(e.pointerId); } catch(x){} vp.classList.add("grab"); });
+    vp.addEventListener("pointermove", function(e){ if (!drag) return; ed.ox = drag.ox+(e.clientX-drag.x); ed.oy = drag.oy+(e.clientY-drag.y); place(); });
+    function end(){ drag = null; vp.classList.remove("grab"); }
+    vp.addEventListener("pointerup", end); vp.addEventListener("pointercancel", end);
+    vp.addEventListener("wheel", function(e){ e.preventDefault(); ed.zoom = clamp(ed.zoom*(e.deltaY<0?1.06:0.94),1,4); slider.value = ed.zoom; place(); }, {passive:false});
+    slider = h("input",{type:"range",min:"1",max:"4",step:"0.01",value:String(ed.zoom),"aria-label":"Zoom",style:"width:100%;accent-color:var(--pine)",
+      oninput:function(ev){ ed.zoom = +ev.target.value; place(); }});
+    place();
+    function apply(){
+      var c = document.createElement("canvas"); c.width = c.height = 256;
+      var ctx = c.getContext("2d"), k = 256/V, g = geom();
+      ctx.fillStyle = "#fff"; ctx.fillRect(0,0,256,256);
+      ctx.drawImage(ed.img,(V/2+ed.ox-g.w/2)*k,(V/2+ed.oy-g.h/2)*k,g.w*k,g.h*k);
+      d.photo = c.toDataURL("image/jpeg",0.85); S.dirty = true; S.ed = null; render();
+    }
+    return h("div",{class:"editor"},
+      h("div",{class:"vpwrap"}, framed(d.frame, vp, V)),
+      h("p",{class:"hint",style:"text-align:center"},"Drag to move \u00b7 slide to zoom"),
+      h("div",{style:"max-width:280px;margin:0 auto"}, slider),
+      frameChips(d),
+      h("div",{class:"actions"},
+        h("button",{class:"btn",type:"button",onclick:apply},"Use this photo"),
+        h("button",{class:"btn ghost",type:"button",onclick:function(){ S.ed = null; render(); }},"Cancel")));
+  }
+  function profileForm(isNew){
+    if (!S.draft) initDraft();
+    var d = S.draft;
+    var locked = false;
+    var claimedIds = {};
+    S.people.forEach(function(p){ if (p.rosterId && p.id !== S.sid) claimedIds[p.rosterId] = true; });
+    var options = S.roster.filter(function(r){ return r.family === d.family && !claimedIds[r.id]; });
+    var fileInput = h("input",{type:"file",accept:"image/*",style:"display:none",onchange:async function(ev){
+      var f = ev.target.files && ev.target.files[0]; if (!f) return;
+      openEditor(f); ev.target.value = "";
+    }});
+    var rows = d.items.map(function(txt, i){
+      var u0 = urlIn(txt);
+      var slot = h("div",{class:"lslot"}, u0 ? linkCard(u0) : null);
+      return h("div",null,
+        h("div",{class:"row"},
+          h("input",{type:"text",value:txt,maxlength:"500",placeholder:"A gift idea, or paste a link",
+            oninput:function(ev){ d.items[i] = ev.target.value; S.dirty = true; },
+            onchange:function(){ var u = urlIn(d.items[i]); slot.replaceChildren(); if (u) slot.append(linkCard(u)); }}),
+          h("button",{class:"x",type:"button","aria-label":"Remove item",onclick:function(){
+            d.items.splice(i,1); if(!d.items.length) d.items=[""]; S.dirty=true; render();
+          }},"\u00d7")),
+        slot);
+    });
+
+    var whoField;
+    if (locked){
+      whoField = [h("label",null,"Family"), h("div",{class:"locked"}, d.family),
+                  h("label",{for:"f-name"},"Your name"),
+                  h("input",{id:"f-name",type:"text",value:d.name,maxlength:"60",oninput:function(ev){ d.name=ev.target.value; S.dirty=true; }})];
+    } else {
+      whoField = [
+        h("label",{for:"f-fam"},"Your family"),
+        h("select",{id:"f-fam",onchange:function(ev){ d.family=ev.target.value; d.rosterId=""; S.dirty=true; render(); }},
+          h("option",{value:"",selected:d.family===""?true:null},"Choose…"),
+          FAMILIES.map(function(f){ return h("option",{value:f,selected:d.family===f?true:null}, f); })),
+        d.family ? [
+          h("label",null,"Who are you?"),
+          h("div",{class:"pick",role:"radiogroup","aria-label":"Who are you?"},
+            options.map(function(r){
+              var on = d.rosterId === r.id;
+              return h("button",{type:"button",class:"opt"+(on?" on":""),role:"radio","aria-checked":on?"true":"false",onclick:function(){
+                d.rosterId = r.id; d.name = r.name; S.dirty = true; render();
+              }}, r.name);
+            }),
+            h("button",{type:"button",class:"opt alt"+(!d.rosterId?" on":""),role:"radio","aria-checked":!d.rosterId?"true":"false",onclick:function(){
+              if (d.rosterId){ d.rosterId = ""; d.name = ""; } S.dirty = true; render();
+            }}, options.length ? "My name isn't listed" : "Type my name below")),
+          !d.rosterId ? [h("label",{for:"f-name"},"Your name"),
+            h("input",{id:"f-name",type:"text",value:d.name,maxlength:"60",autocomplete:"name",oninput:function(ev){ d.name=ev.target.value; S.dirty=true; }})] : null
+        ] : null
+      ];
+    }
+
+    var acct = isNew ? (S.sid ? [
+      h("p",{class:"hint",style:"margin-top:18px"},"Signed in as "+S.email+". Finish your profile to join the exchange.")
+    ] : [
+      h("label",{for:"cp-u"},"Your email"),
+      h("input",{id:"cp-u",type:"text",inputmode:"email",value:S.auth.u,maxlength:"120",autocomplete:"email",autocapitalize:"none",spellcheck:"false",placeholder:"you@example.com",oninput:function(ev){ S.auth.u=ev.target.value; S.dirty=true; }}),
+      h("div",{class:"hint"},"You'll sign in with this. It's only used for logging in and password resets, and other people can't see it."),
+      h("div",{class:"grid2"},
+        h("div",null, h("label",{for:"cp-p"},"Password"), h("input",{id:"cp-p",type:"password",value:S.auth.p,autocomplete:"new-password",oninput:function(ev){ S.auth.p=ev.target.value; S.dirty=true; }})),
+        h("div",null, h("label",{for:"cp-p2"},"Confirm password"), h("input",{id:"cp-p2",type:"password",value:S.auth.p2,autocomplete:"new-password",oninput:function(ev){ S.auth.p2=ev.target.value; S.dirty=true; }}))),
+      h("div",{class:"hint"},"At least 6 characters. Don't reuse an important password; this is a casual family page.")
+    ]) : null;
+    var pwChange = !isNew ? [
+      h("label",null,"Password"),
+      h("div",{class:"hint",style:"margin:0 0 8px"},"Signed in as "+S.email),
+      h("button",{class:"btn ghost small",type:"button",onclick:resetMine},"Email me a password reset link")
+    ] : null;
+    return h("div",{class:"card"},
+      h("h2",null, isNew ? "Create your profile" : "My profile"),
+      h("p",{class:"sub"}, isNew ? "Pick your family, add a photo, and share what you'd love. You'll be matched with someone from another family." : "Whoever draws you sees your latest wishlist. You can change your family or name any time."),
+      note(S.msg),
+      S.ed ? editor(d) : photoRow(d, fileInput),
+      acct,
+      whoField,
+      h("label",null,"Wishlist · up to $"+BUDGET),
+      rows,
+      d.items.length < 25 ? h("button",{class:"btn ghost small",type:"button",onclick:function(){ d.items.push(""); S.focusIdx=d.items.length-1; S.dirty=true; render(); }},"+ Add another") : null,
+      pwChange,
+      h("div",{class:"actions"},
+        h("button",{class:"btn",type:"button",disabled:S.saving,onclick:saveProfile}, S.saving ? "Saving…" : (isNew ? "Create profile" : "Save changes"))),
+      null);
+  }
+
+  function matchView(){
+    if (!S.draw || !S.draw.assignments){
+      return h("div",{class:"card empty"}, h("h2",null,"Names haven't been drawn yet"),
+        h("p",{class:"sub"}, S.people.length+" "+(S.people.length===1?"person has":"people have")+" joined. Your match will appear here after the organizer runs the draw."));
+    }
+    var tid = S.draw.assignments[S.sid];
+    if (!tid) return h("div",{class:"card empty"}, h("h2",null,"You joined after the draw"),
+        h("p",{class:"sub"},"Ask the organizer to run the draw again so you're included."));
+    var t = byId(tid);
+    if (!t) return h("div",{class:"card empty"}, h("h2",null,"Your match left the exchange"),
+        h("p",{class:"sub"},"Ask the organizer to run the draw again."));
+    var list = t.wishlist || [];
+    return h("div",null,
+      h("div",{class:"card match"},
+        avatar(t,112),
+        h("p",{class:"tag"},"You're Secret Santa for"),
+        h("p",{class:"name"}, t.name),
+        h("span",{class:"chip in"}, famOf(t)),
+        h("p",{class:"sub",style:"margin-top:14px"},"Budget $"+BUDGET+" · keep it secret until gift opening")),
+      h("div",{class:"card"},
+        h("h2",null,t.name.split(" ")[0]+"'s wishlist"),
+        list.length
+          ? h("ul",{class:"wish"}, list.map(function(x){ return h("li",null, h("span",{class:"wi"}, linkify(x), (function(){ var u = urlIn(x); return u ? linkCard(u) : null; })())); }))
+          : h("p",{class:"sub"},"They haven't added anything yet. Check back soon.")));
+  }
+
+  function orgView(){
+    var ps = S.people.slice().sort(function(a,b){ return norm(famOf(a)).localeCompare(norm(famOf(b))) || norm(a.name).localeCompare(norm(b.name)); });
+    var drawn = !!(S.draw && S.draw.assignments);
+    var armed = S.confirm === "draw", armedClear = S.confirm === "clear";
+    var late = drawn ? ps.filter(function(p){ return (p.joinedAt||0) > (S.draw.drawnAt||0); }).length : 0;
+    var claimed = {};
+    S.people.forEach(function(p){ if (p.rosterId) claimed[p.rosterId] = true; });
+
+    var rosterCard = h("div",{class:"card"},
+      h("h2",null,"Family roster"),
+      h("p",{class:"sub"},"Add everyone you expect. Home shows them as “Not yet” until they join and pick their name."),
+      h("div",{class:"grid2",style:"margin-top:14px"},
+        h("select",{"aria-label":"Family",onchange:function(ev){ S.rd.family = ev.target.value; }},
+          FAMILIES.map(function(f){ return h("option",{value:f,selected:S.rd.family===f?true:null}, f); })),
+        h("input",{type:"text",placeholder:"Name",value:S.rd.name,maxlength:"60","aria-label":"Name",
+          oninput:function(ev){ S.rd.name = ev.target.value; },
+          onkeydown:function(ev){ if (ev.key==="Enter") addRoster(); }})),
+      h("div",{class:"actions",style:"margin-top:10px"}, h("button",{class:"btn",onclick:addRoster},"\ud83c\udf89 Add family member")),
+      FAMILIES.map(function(f){
+        var list = S.roster.filter(function(r){ return r.family === f; });
+        if (!list.length) return null;
+        return [h("h3",{class:"sec"},f),
+          list.map(function(r){
+            var rm = S.confirm === "rr:"+r.id;
+            return h("div",{class:"org-row"}, h("div",{class:"grow",style:"flex:1"}, r.name, h("small",{style:claimed[r.id]?"color:#2e9d62;font-weight:600":null}, claimed[r.id] ? "Joined" : "Not yet")),
+              r.s ? null : h("button",{class:"btn ghost small"+(rm?" danger":""),onclick:function(){
+                if (!rm){ S.confirm="rr:"+r.id; return render(); }
+                removeRoster(r.id);
+              }}, rm ? "Confirm" : "Remove"));
+          })];
+      }));
+
+    var drawCard = h("div",{class:"card"},
+      h("h2",null,"Draw names"),
+      h("p",{class:"sub"},"Matches never pair two people from the same family. Needs at least 3 people who have joined."),
+      (S.orgMsg && S.orgMsg.w==="people") ? null : note(S.orgMsg),
+      drawn ? h("div",{class:"note ok"},"Drawn for "+(S.draw.count||"")+" people."+(late?(" "+late+" newer sign-up"+(late>1?"s are":" is")+" not included yet."):"")) : null,
+      h("div",{class:"actions"},
+        h("button",{class:"btn"+(armed?" danger":""),disabled:ps.length<3,onclick:function(){
+          if (drawn && !armed){ S.confirm="draw"; return render(); }
+          runDraw();
+        }}, armed ? "Yes, redraw everyone" : (drawn ? "Redraw names" : "Draw names")),
+        drawn ? h("button",{class:"btn ghost"+(armedClear?" danger":""),onclick:function(){
+          if (!armedClear){ S.confirm="clear"; return render(); }
+          clearDraw();
+        }}, armedClear ? "Yes, clear" : "Clear draw") : null,
+        (armed||armedClear) ? h("button",{class:"btn ghost small",onclick:function(){ S.confirm=null; render(); }},"Cancel") : null),
+      armed ? h("div",{class:"hint"},"Redrawing replaces every current match.") : null);
+
+    var peopleCard = h("div",{class:"card"},
+      h("h2",null,"People who joined ("+ps.length+")"),
+      (S.orgMsg && S.orgMsg.w==="people") ? note(S.orgMsg) : null,
+      ps.length ? ps.map(function(p){
+        var rm = S.confirm === "rm:"+p.id;
+        return h("div",{class:"org-row"}, avatar(p,36),
+          h("div",{class:"grow",style:"flex:1"}, p.name, h("small",null, famOf(p))),
+          p.id === S.sid ? h("span",{class:"chip you"},"You") : h("button",{class:"btn ghost small"+(rm?" danger":""),onclick:function(){
+            if (!rm){ S.confirm="rm:"+p.id; return render(); }
+            removePerson(p.id);
+          }}, rm ? "Confirm" : "Remove"),
+          rm ? h("button",{class:"btn ghost small",onclick:function(){ S.confirm=null; render(); }},"Cancel") : null);
+      }) : h("p",{class:"sub"},"No one yet."));
+    return h("div",null, rosterCard, drawCard, peopleCard);
+  }
+
+  function effTab(){
+    var m = me(), tab = S.tab;
+    if (!m && tab==="match") tab = "home";
+    if (m && tab==="in") tab = "home";
+    if (tab==="org" && !isOrg()) tab = "home";
+    return tab;
+  }
+  function body(){
+    var m = me(), c;
+    var tab = effTab();
+    if (tab==="home") c = homeView();
+    else if (tab==="match") c = matchView();
+    else if (tab==="in") c = signInView();
+    else if (tab==="me"){ if (!m && !S.dirty && S.auth.u && S.auth.u === S.lastU) S.auth.u = ""; c = profileForm(!m); }
+    else c = orgView();
+    return h("div",null, tabsBar(), c);
+  }
+
+  function render(){
+    document.body.classList.toggle("off-home", effTab() !== "home" && !S.smAll);
+    if (S.unavailable){
+      app.replaceChildren(topbar(), h("div",{class:"card empty"}, h("h2",null,"Can\u2019t connect right now"), h("p",{class:"sub"},S.unavailable)));
+      return;
+    }
+    if (!(S.gotPeople && S.gotDraw && S.gotRoster && S.gotAuth)){
+      app.replaceChildren.apply(app, [topbar()].concat(S.slow ? [h("div",{class:"card empty"}, h("p",{class:"sub"},"This is taking a while. The page will update when it connects."))] : []));
+      return;
+    }
+    app.replaceChildren(topbar(), body());
+    if (S.focusIdx != null){
+      var ins = app.querySelectorAll(".row input");
+      if (ins[S.focusIdx]) ins[S.focusIdx].focus();
+      S.focusIdx = null;
+    }
+  }
+
+  // live updates must not wipe a half-typed form
+  var lastSig = "";
+  function dataSig(){
+    var a = S.people.map(function(p){ return [p.id,p.name,p.family,p.household,p.rosterId,p.frame,(p.photo||"").length,(p.wishlist||[]).join("\u0001"),p.updatedAt||0,p.joinedAt||0].join("|"); }).join("\n");
+    var r = S.roster.map(function(x){ return x.id+"|"+x.name+"|"+x.family; }).join("\n");
+    var d = ""; try { d = JSON.stringify(S.draw); } catch(e){}
+    return [S.gotPeople,S.gotRoster,S.gotDraw,S.gotAuth,S.sid,S.email,S.canEdit,a,r,d].join("#");
+  }
+  function liveRender(){
+    var sig = dataSig();
+    if (sig === lastSig) return;          // nothing changed: don't rebuild the page
+    var ae = document.activeElement;
+    var typing = ae && app.contains(ae) && (ae.tagName==="INPUT" || ae.tagName==="SELECT");
+    if (S.ed && S.tab==="me") return;
+    if (S.dirty && (S.tab==="me")) return;
+    if (typing && (S.tab==="org" || S.tab==="me")) return;
+    lastSig = sig;
+    render();
+  }
+
+  async function boot(){
+    render();
+    var t = setTimeout(function(){ S.slow = true; if (!(S.gotPeople&&S.gotDraw&&S.gotRoster&&S.gotAuth)) render(); }, 10000);
+    var fb = null;
+    try { fb = await Promise.race([window.__fbReady, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error("timeout")); }, 15000); })]); } catch(e){}
+    if (!fb){
+      clearTimeout(t);
+      S.unavailable = "The page couldn't reach its database. Check your internet connection and reload.";
+      return render();
+    }
+    S.fb = fb; S.db = fb.db;
+    fb.auth.onChange(onAuth);
+    S.db.collection("participants").onSnapshot(function(snap){
+      S.people = snap.docs.map(function(d){ var x = d.data() || {}; x.id = d.id; return x; });
+      if (!snap.metadata.fromCache) clearTimeout(t);
+      S.gotPeople = true;
+      if (S.needCheck && S.sid){ S.needCheck = false; if (!me()) S.tab = "me"; }
+      if (!S.draft && me()) initDraft();
+      liveRender();
+    }, function(){ S.gotPeople = true; liveRender(); });
+    S.db.collection("roster").onSnapshot(function(snap){
+      S.roster = withStatic(snap.docs.map(function(d){ var x = d.data() || {}; x.id = d.id; return x; }));
+      S.gotRoster = true; liveRender();
+    }, function(){ S.gotRoster = true; liveRender(); });
+    S.db.doc("meta/draw").onSnapshot(function(snap){
+      S.meta = snap.exists ? (snap.data() || {}) : null; rebuildDraw();
+      S.gotDraw = true; liveRender();
+    }, function(){ S.gotDraw = true; liveRender(); });
+  }
+  // night mode: from sunset to sunrise in Indianapolis (Eastern time)
+  var LAT = 39.77, LON = -86.16, TZ = "America/Indiana/Indianapolis";
+  function sunTimes(y, mo, d){
+    var rad = Math.PI/180;
+    var N = Math.floor((Date.UTC(y,mo-1,d) - Date.UTC(y,0,0)) / 864e5);
+    var lh = LON/15;
+    function calc(rise){
+      var t = N + ((rise ? 6 : 18) - lh)/24;
+      var M = 0.9856*t - 3.289;
+      var L = (M + 1.916*Math.sin(M*rad) + 0.020*Math.sin(2*M*rad) + 282.634 + 720) % 360;
+      var RA = (Math.atan(0.91764*Math.tan(L*rad))/rad + 360) % 360;
+      RA += Math.floor(L/90)*90 - Math.floor(RA/90)*90;
+      RA /= 15;
+      var sd = 0.39782*Math.sin(L*rad), cd = Math.cos(Math.asin(sd));
+      var cH = (Math.cos(90.833*rad) - sd*Math.sin(LAT*rad)) / (cd*Math.cos(LAT*rad));
+      var H = Math.acos(Math.max(-1, Math.min(1, cH)))/rad;
+      if (rise) H = 360 - H;
+      H /= 15;
+      var T = H + RA - 0.06571*t - 6.622;
+      var UT = ((T - lh) % 24 + 24) % 24;
+      return Date.UTC(y,mo-1,d) + UT*36e5;
+    }
+    var r = calc(true), s = calc(false);
+    if (s < r) s += 864e5;
+    return {rise:r, set:s};
+  }
+  function isNight(){
+    try {
+      var now = new Date();
+      var parts = new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(now);
+      var g = {}; parts.forEach(function(p){ g[p.type] = +p.value; });
+      var st = sunTimes(g.year, g.month, g.day), t = now.getTime();
+      return t < st.rise || t >= st.set;
+    } catch(e){ var hr = new Date().getHours(); return hr >= 18 || hr < 7; }
+  }
+  function applyTheme(){
+    var v = curView(), b = document.body;
+    b.classList.toggle("night", v === "night"); b.classList.toggle("light", v === "light");
+  }
+  applyTheme(); setInterval(applyTheme, 60000);
+  // welcome intro: the artwork comes alive for a few seconds, once per visit
+  function intro(){
+    var vw = window.innerWidth, vh = window.innerHeight, sc = Math.max(vw/868, vh/1326);
+    var lx = 628*sc + (vw-868*sc)/2, ly = 478*sc + (vh-1326*sc)/2, gs = Math.max(180, 340*sc);
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var glow = h("div",{class:"glow",style:"width:"+gs+"px;height:"+gs+"px;left:"+(lx-gs/2)+"px;top:"+(ly-gs/2)+"px"});
+    var art = h("div",{class:"art"}, glow);
+    var cv = h("canvas"); cv.width = vw; cv.height = vh;
+    var hw = h("b",{class:"hw","aria-label":"You\u2019re invited"});
+    var word = "You\u2019re invited", spans = "", ci = 0;
+    for (var wi = 0; wi < word.length; wi++){
+      var chh = word.charAt(wi);
+      if (chh === " ") { spans += " "; continue; }
+      spans += '<tspan class="ch" style="--i:' + (ci++) + '">' + chh + '</tspan>';
+    }
+    hw.innerHTML = '<svg viewBox="0 0 420 104" aria-hidden="true"><text x="210" y="74" text-anchor="middle" textLength="372" lengthAdjust="spacingAndGlyphs">' + spans + '</text></svg>';
+    // waving bear: animated WebP with real alpha (plain <img>, so it plays on every phone without autoplay or video rules)
+    var bimg = h("img",{src:"bear2.webp",alt:"","aria-hidden":"true",decoding:"async",draggable:"false"});
+    var bearEl = h("div",{class:"bear","aria-hidden":"true"}, bimg);
+    var alive = true;
+    var el = h("div",{class:"intro",role:"presentation"}, art, cv, h("div",{class:"lbar t"}), h("div",{class:"lbar b"}), bearEl,
+      h("div",{class:"txt"}, h("small",null,"Christmas 2026"), hw, h("span",null,"Family Gift Exchange"), h("div",{class:"cred"},"Developed with ", h("span",{class:"lv"},"love"), " by Anand Tsogtbaatar"), h("div",{class:"tap"},"Tap to continue")));
+    document.body.appendChild(el);
+    var ctx = cv.getContext("2d"), fl = [];
+    var sp = [1,1.7,2.6].map(function(r){ var c = document.createElement("canvas"), n = Math.ceil(r*2)+2; c.width = c.height = n; var x = c.getContext("2d"); x.fillStyle = "#fff"; x.beginPath(); x.arc(n/2,n/2,r,0,6.283); x.fill(); return c; });
+    for (var i=0;i<(calm?0:80);i++){ var k = i%3; fl.push({x:Math.random()*vw,y:Math.random()*vh,k:k,v:.4+Math.random()*1.0,d:Math.random()*6.28,a:.35+k*.2}); }
+    function tick(){
+      if (!alive) return;
+      requestAnimationFrame(tick);
+      if (document.hidden) return;
+      ctx.clearRect(0,0,vw,vh);
+      for (var i=0;i<fl.length;i++){
+        var f = fl[i];
+        f.y += f.v; f.d += .012; f.x += Math.sin(f.d)*.45;
+        if (f.y > vh+4){ f.y = -4; f.x = Math.random()*vw; }
+        var im = sp[f.k]; ctx.globalAlpha = f.a; ctx.drawImage(im, f.x - im.width/2, f.y - im.height/2);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (fl.length) tick();
+    var done = false;
+    function close(){
+      if (done) return; done = true;
+      el.classList.add("out");
+      setTimeout(function(){ document.dispatchEvent(new CustomEvent("intro-out")); }, 500);
+      setTimeout(function(){ alive = false; el.remove(); }, 1600);
+    }
+    el.addEventListener("click", close);
+    document.addEventListener("keydown", function onk(e){ if (e.key === "Enter" || e.key === " " || e.key === "Escape"){ document.removeEventListener("keydown", onk); close(); } });
+  }
+
+  // playful snowman: drag it anywhere, poke it and it topples; it guides people to play
+  (function snowman(){
+    var walk = document.getElementById("walk"), sm = document.getElementById("sman");
+    if (!walk || !sm) return;
+    var W = 34, H = 44;
+    var bub = document.createElement("div"); bub.className = "sbub"; bub.setAttribute("aria-hidden","true"); document.body.appendChild(bub);
+    var down = false, moved = false, busy = false, free = false, t0 = 0, offX = 0, offY = 0, px = 0, py = 0, curX = 0, curY = 0;
+    var bt = null, idle = null, hintT = null, edge = null, hints = 0, dragged = 0, pokes = 0, interacted = false;
+    function docW(){ return Math.max(document.documentElement.scrollWidth, window.innerWidth); }
+    function wrapWords(t){
+      var w = String(t).split(/\s+/).filter(Boolean), n = w.length;
+      if (n <= 5) return w.join(" ");
+      var lines = Math.ceil(n/4), base = Math.floor(n/lines), extra = n % lines, out = [], i = 0;
+      for (var k = 0; k < lines; k++){ var c = base + (k < extra ? 1 : 0); out.push(w.slice(i, i+c).join(" ")); i += c; }
+      return out.join("\n");
+    }
+    var bx = null, by = null, fol = 0, lastF = 0, stopT = 0;
+    function step(dt){
+      var r = sm.getBoundingClientRect(); if (!r.width) return;
+      var bw = bub.offsetWidth, bh = bub.offsetHeight, cx = r.left + r.width/2;
+      var lx = Math.min(Math.max(cx, bw/2 + 8), window.innerWidth - bw/2 - 8);
+      var ty = Math.max(r.top - 10, bh + 10);
+      if (bx === null){ bx = lx; by = ty; }
+      else { var k = 1 - Math.exp(-dt/95); bx += (lx - bx)*k; by += (ty - by)*k; }   // eases after him, so it trails
+      bub.style.left = bx + "px"; bub.style.top = by + "px";
+      bub.style.setProperty("--tx", Math.min(Math.max(bw/2 + (cx - bx), 30), bw - 30) + "px");
+    }
+    function loop(ts){ fol = requestAnimationFrame(loop); var dt = Math.min(Math.max(ts - lastF, 0), 64); lastF = ts; step(dt); }
+    function startFollow(){ clearTimeout(stopT); if (!fol){ lastF = performance.now(); fol = requestAnimationFrame(loop); } }
+    function hideBub(){
+      bub.classList.remove("on"); clearTimeout(stopT);
+      stopT = setTimeout(function(){ if (!bub.classList.contains("on")){ cancelAnimationFrame(fol); fol = 0; bx = by = null; } }, 500);
+    }
+    function say(txt, ms){
+      clearTimeout(bt); bub.textContent = wrapWords(txt);
+      if (!bub.classList.contains("on")) bx = by = null;      // fresh bubble appears right at him
+      bub.classList.add("on"); startFollow(); step(0);
+      bt = setTimeout(hideBub, ms || 4600);
+    }
+    function setPos(x, y){
+      curX = Math.min(Math.max(x, 0), docW() - W); curY = Math.max(y, 0);
+      sm.style.left = curX + "px"; sm.style.top = curY + "px";
+    }
+    function makeFree(){
+      if (free) return;
+      var r = sm.getBoundingClientRect();
+      document.body.appendChild(sm); free = true;
+      sm.classList.add("free");
+      setPos(r.left + window.scrollX + (r.width - W)/2, r.top + window.scrollY);
+    }
+    function flash(cls, ms){ sm.classList.remove(cls); void sm.offsetWidth; sm.classList.add(cls); setTimeout(function(){ sm.classList.remove(cls); }, ms); }
+    function armIdle(){ clearTimeout(idle); idle = setTimeout(goHome, 14000); }
+    function goHome(){
+      if (!free || down || busy) return;
+      var wr = walk.getBoundingClientRect();
+      var tx = wr.left + window.scrollX + 2, ty = wr.bottom + window.scrollY - H;
+      sm.classList.add("home"); setPos(tx, ty);
+      say("Home sweet home! ❄️", 3200);
+      var fin = false;
+      function done(){
+        if (fin) return; fin = true;
+        sm.classList.remove("home","free","land","up","fall");
+        sm.style.left = sm.style.top = "";
+        walk.appendChild(sm); free = false;
+        if (pokes === 0) scheduleHint();
+      }
+      sm.addEventListener("transitionend", function te(e){ if (e.propertyName === "top" || e.propertyName === "left"){ sm.removeEventListener("transitionend", te); done(); } });
+      setTimeout(done, 1700);
+    }
+    function poke(){
+      if (busy) return; busy = true; pokes++;
+      sm.style.setProperty("--d", Math.random() < .5 ? "1" : "-1");
+      sm.classList.remove("land","up","nudge"); sm.classList.add("fall");
+      var oof = ["Oof! 😵","Ouch! Who poked me?","Whoa… the room is spinning","Timber! 🌲"];
+      say(oof[(pokes-1) % oof.length], 2400);
+      setTimeout(function(){
+        sm.classList.remove("fall"); sm.classList.add("up");
+        var back = pokes === 1 ? "Ha! Good one. Now try dragging me up high!" : ["Again! Again!","Okay, okay… I’m dizzy!","Poke me again, I dare you 😏","Hey, I was just standing here!"][pokes % 4];
+        say(back, 4400);
+        setTimeout(function(){ sm.classList.remove("up"); busy = false; armIdle(); }, 950);
+      }, 2000);
+    }
+    function drop(){
+      sm.classList.remove("held"); clearInterval(edge); edge = null;
+      flash("land", 560); dragged++;
+      say(dragged === 1 ? "Wheee! Now poke me 👉" : ["Nice spot!","Wheee! ✨","Put me anywhere!","Cozy up here ☃️"][dragged % 4], 3800);
+      armIdle();
+    }
+    sm.addEventListener("pointerdown", function(e){
+      if (busy) { e.preventDefault(); return; }
+      e.preventDefault(); interacted = true; clearTimeout(hintT); clearTimeout(idle);
+      hideBub();
+      makeFree();
+      var r = sm.getBoundingClientRect();
+      offX = e.clientX - r.left; offY = e.clientY - r.top; px = e.clientX; py = e.clientY;
+      down = true; moved = false; t0 = Date.now();
+      try { sm.setPointerCapture(e.pointerId); } catch(_){}
+    });
+    sm.addEventListener("pointermove", function(e){
+      if (!down) return;
+      px = e.clientX; py = e.clientY;
+      if (!moved){
+        var r0 = sm.getBoundingClientRect();
+        if (Math.abs(e.clientX - (r0.left + offX)) < 6 && Math.abs(e.clientY - (r0.top + offY)) < 6) return;
+        moved = true; sm.classList.add("held");
+        edge = setInterval(function(){
+          var dy = py < 70 ? -14 : (py > window.innerHeight - 70 ? 14 : 0);
+          if (dy){ window.scrollBy(0, dy); setPos(px + window.scrollX - offX, py + window.scrollY - offY); }
+        }, 30);
+      }
+      setPos(e.clientX + window.scrollX - offX, e.clientY + window.scrollY - offY);
+    });
+    function up(e){
+      if (!down) return; down = false;
+      try { sm.releasePointerCapture(e.pointerId); } catch(_){}
+      if (moved) drop(); else poke();
+    }
+    sm.addEventListener("pointerup", up);
+    sm.addEventListener("pointercancel", up);
+    sm.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+    document.addEventListener("snowman-say", function(e){ say(e.detail.text, e.detail.ms); });
+    // ambient banter: a funny line every so often while he's on screen
+    var quips = [
+      "I\u2019d tell you a snow joke, but it might go over your head.",
+      "Gift budget is $"+BUDGET+". I\u2019m watching. \uD83D\uDC40",
+      "Cold hands, warm heart, zero pockets.",
+      "Who did I draw? I\u2019d tell you, but I can\u2019t keep a secret\u2026 I mean I CAN. Never mind.",
+      "Flurry up and finish your wishlist!",
+      "I\u2019m on thin ice with the elves.",
+      "Is it just me, or is it getting warm in here?",
+      "I asked Santa for a scarf. He said I already have one. Rude.",
+      "I\u2019m not saying I\u2019m Santa\u2019s favorite, but I do have a carrot.",
+      "Brrr\u2026 I mean, I\u2019m always like this.",
+      "Pro tip: gift cards are just snowflakes for grown-ups.",
+      "Sleigh the day! \uD83C\uDF84",
+      "Why was the snowman cranky? Bad case of ice-itis.",
+      "No peeking at the draw! I see you, Uncle.",
+      "I put the \u201Csnow\u201D in \u201Csnow way am I telling you who I drew.\u201D",
+      "Wrap it with love. Or tape. Mostly tape.",
+      "My carrot nose is non-negotiable.",
+      "If you get socks, act surprised. It\u2019s tradition."
+    ];
+    var qi = Math.floor(Math.random()*quips.length), lastSay = 0;
+    function banter(){
+      var r = sm.getBoundingClientRect(), vis = r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
+      if (vis && !down && !busy && !document.querySelector(".intro") && !document.hidden && Date.now() - lastSay > 6000){
+        qi = (qi + 1 + Math.floor(Math.random()*3)) % quips.length;
+        lastSay = Date.now();
+        say(quips[qi], 4200);
+        if (!free) flash("nudge", 720);
+      }
+      setTimeout(banter, 13000 + Math.random()*11000);
+    }
+    setTimeout(banter, 9000);
+    // guidance: speak up while nobody has played with it yet
+    function scheduleHint(){
+      clearTimeout(hintT);
+      if (interacted && pokes > 0) return;
+      hintT = setTimeout(function(){
+        var r = sm.getBoundingClientRect(), vis = r.bottom > 0 && r.top < window.innerHeight;
+        if (!down && !busy && vis){
+          var lines = dragged ? ["Psst… poke me! 👉","Go on, give me a poke"] : ["Psst… drag me around! ✋","Pick me up and take me anywhere!","Tap me… I dare you 😏"];
+          say(lines[hints % lines.length], 5000); hints++;
+          if (!free) flash("nudge", 720);
+        }
+        if (hints < 6) scheduleHint();
+      }, hints === 0 ? 1600 : 13000);
+    }
+    if ("IntersectionObserver" in window){
+      var io = new IntersectionObserver(function(en){
+        if (en[0].isIntersecting && hints === 0 && !interacted){ io.disconnect(); scheduleHint(); }
+      }, {threshold:.6});
+      io.observe(walk);
+    } else scheduleHint();
+    // snow trail: stamp soft footprints along the walked path
+    var prints = [], lastSX = null, STEP = 15;
+    function stamp(x, off){
+      var pr = document.createElement("span"); pr.className = "print";
+      pr.style.left = x + "px"; pr.style.marginLeft = off + "px";
+      walk.appendChild(pr); prints.push(pr);
+      pr.addEventListener("animationend", function(){ pr.remove(); var k = prints.indexOf(pr); if (k >= 0) prints.splice(k, 1); });
+      while (prints.length > 20){ var old = prints.shift(); if (old) old.remove(); }
+    }
+    var lastT = 0;
+    function trail(t){
+      requestAnimationFrame(trail);
+      if (document.hidden || t - lastT < 70) return;   // sample ~14x/sec instead of every frame
+      lastT = t;
+      if (free || down || busy){ lastSX = null; return; }
+      var wr = walk.getBoundingClientRect(), r = sm.getBoundingClientRect();
+      if (!r.width || wr.bottom < 0 || wr.top > window.innerHeight) { lastSX = null; return; }
+      var x = r.left - wr.left + r.width/2;
+      if (lastSX === null){ lastSX = x; return; }
+      if (Math.abs(x - lastSX) >= STEP){
+        var dir = x > lastSX ? 1 : -1; lastSX = x;
+        stamp(x - dir*6, (prints.length % 2) ? 3 : -3);
+      }
+    }
+    requestAnimationFrame(trail);
+  })();
+  intro();
+  boot();
+})();
+</script>
+</body>
+</html>

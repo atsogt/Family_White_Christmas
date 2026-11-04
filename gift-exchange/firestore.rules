@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin()  { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function drawn()    { return exists(/databases/$(database)/documents/meta/draw); }
+
+    function validProfile() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name','family','household','rosterId','photo','frame','wishlist','joinedAt','updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.family is string && d.family.size() <= 60
+        && d.household is string && d.household.size() <= 60
+        && d.rosterId is string && d.rosterId.size() <= 80
+        && d.photo is string && d.photo.size() <= 150000
+        && d.frame is string && d.frame.size() <= 30
+        && d.wishlist is list && d.wishlist.size() <= 25
+        && d.joinedAt is number && d.updatedAt is number;
+    }
+
+    // Profiles and wishlists: anyone with the link can read; each person writes only their own.
+    // New profiles are refused once the names have been drawn.
+    match /participants/{uid} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == uid && !drawn() && validProfile();
+      allow update: if signedIn() && request.auth.uid == uid && validProfile();
+      allow delete: if isAdmin();
+    }
+
+    // Family roster and "has the draw happened": public read, organizer writes.
+    match /roster/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /meta/{id}   { allow read: if true; allow write: if isAdmin(); }
+
+    // Who you drew: only you can read it; only the organizer writes it.
+    match /matches/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if isAdmin();
+    }
+
+    // Organizer accounts: you can check whether you are one; created by hand in the console.
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}
