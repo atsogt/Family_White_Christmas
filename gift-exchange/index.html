@@ -883,31 +883,60 @@ try {
     var raw = m[0].replace(/[.,;:!?)]+$/,"");
     return /^www\./i.test(raw) ? "https://" + raw : raw;
   }
+  // a blocked page ("Access Denied", captcha, 403...) is not a product: never show its title or picture
+  var BADTITLE = /access denied|forbidden|just a moment|attention required|are you a (robot|human)|captcha|security check|verify you are|request blocked|unusual traffic|page not found|robot check|bot detection|^\s*(error|oops|blocked)\b|\b(403|404|429|503)\b/i;
+  function smallCaps(w, i){ return (i > 0 && /^(a|an|and|or|of|for|with|in|on|the|to|by)$/i.test(w)) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1); }
+  // "prismacolor-premier-soft-core-colored-pencil-set-10011442" -> "Prismacolor Premier Soft Core Colored Pencil Set"
+  function niceName(url){
+    try {
+      var u = new URL(url), skip = /^(dp|gp|product|products|p|ip|item|itm|pd|pdp|prd|catalog|shop|buy|s|b|c|collections|detail|details|sku|listing|offer)$/i, best = "";
+      u.pathname.split("/").filter(Boolean).forEach(function(seg){
+        try { seg = decodeURIComponent(seg); } catch(e){}
+        seg = seg.replace(/\.(html?|php|aspx?)$/i, "");
+        if (skip.test(seg) || /^\d+$/.test(seg) || (seg.match(/[a-z]/gi) || []).length < 4) return;
+        if (!/[-_+\s]/.test(seg) && /\d/.test(seg) && seg.length <= 14) return;       // looks like an ID (ASIN, SKU)
+        if (seg.length > best.length) best = seg;
+      });
+      var words = best.replace(/[-_+]+/g, " ").replace(/\b[a-z]*\d{5,}[a-z0-9]*\b/gi, "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+      return words.map(smallCaps).join(" ").slice(0, 120);
+    } catch(e){ return ""; }
+  }
+  // "Amazon.com: Foo Bar Baz | Amazon.com" -> "Foo Bar Baz"
+  function cleanTitle(t, host){
+    t = String(t || "").replace(/\s+/g, " ").trim();
+    var base = String(host || "").split(".")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+    t = t.replace(/^[A-Za-z0-9 .'&]{2,24}:\s+/, function(m){ return m.toLowerCase().replace(/[^a-z0-9]/g, "").indexOf(base) > -1 ? "" : m; });
+    var parts = t.split(/\s+[|–—-]\s+/);
+    while (parts.length > 1){
+      var last = parts[parts.length - 1], flat = last.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if ((base && flat.indexOf(base) > -1) || last.length <= 18) parts.pop(); else break;
+    }
+    return parts.join(" - ").slice(0, 140).trim();
+  }
   function fetchPreview(url, cb){
     if (PREV[url]) return cb(PREV[url]);
-    var done = false;
+    var done = false, host = ""; try { host = new URL(url).hostname.replace(/^www\./, ""); } catch(e){}
     function fin(v){ if (done) return; done = true; PREV[url] = v; cb(v); }
     setTimeout(function(){ fin({image:"",title:""}); }, 6000);
     try {
       fetch("https://api.microlink.io/?url=" + encodeURIComponent(url)).then(function(r){ return r.json(); }).then(function(j){
-        var d = (j && j.data) || {};
-        fin({image:(d.image && d.image.url) || (d.logo && d.logo.url) || "", title:d.title || ""});
+        var d = (j && j.data) || {}, title = d.title || "";
+        if ((j && j.status && j.status !== "success") || BADTITLE.test(title)) return fin({image:"",title:""});
+        fin({image:(d.image && d.image.url) || "", title:cleanTitle(title, host)});
       }).catch(function(){ fin({image:"",title:""}); });
     } catch(e){ fin({image:"",title:""}); }
   }
+  // shows the product picture when the store allows it; otherwise just a clean product name (no screenshots, logos or error pages)
   function linkCard(url){
     var host = ""; try { host = new URL(url).hostname.replace(/^www\./,""); } catch(e){}
-    var ph = h("img",{class:"ph",alt:""}), t = h("div",{class:"t"}, host);
+    var ph = h("img",{class:"ph",alt:"",style:"display:none"}), t = h("div",{class:"t"}, niceName(url) || host);
     var a = h("a",{class:"lcard",href:url,target:"_blank",rel:"noopener noreferrer"}, ph,
-      h("div",{class:"meta"}, t, h("div",{class:"d"}, host + " \u2197")));
-    var fav = "https://www.google.com/s2/favicons?sz=128&domain=" + encodeURIComponent(host);
-    var shot = "https://s0.wp.com/mshots/v1/" + encodeURIComponent(url) + "?w=480&h=300";
-    var srcs = [], idx = 0;
-    ph.onerror = function(){ idx++; if (idx < srcs.length){ ph.src = srcs[idx]; if (idx === srcs.length-1) ph.classList.add("fav"); } else ph.style.display = "none"; };
+      h("div",{class:"meta"}, t, h("div",{class:"d"}, host + " ↗")));
+    ph.onload = function(){ ph.style.display = ""; };
+    ph.onerror = function(){ ph.style.display = "none"; };
     fetchPreview(url, function(pv){
       if (pv.title) t.textContent = pv.title;
-      srcs = (pv.image ? [pv.image] : []).concat([shot, fav]);
-      idx = 0; ph.src = srcs[0];
+      if (pv.image) ph.src = pv.image;
     });
     return a;
   }
@@ -1536,7 +1565,7 @@ try {
       h("div",{class:"card"},
         h("h2",null,t.name.split(" ")[0]+"'s wishlist"),
         list.length
-          ? h("ul",{class:"wish"}, list.map(function(x){ return h("li",null, h("span",{class:"wi"}, linkify(x), (function(){ var u = urlIn(x); return u ? linkCard(u) : null; })())); }))
+          ? h("ul",{class:"wish"}, list.map(function(x){ return wishItem(x); }))
           : h("p",{class:"sub"},"They haven't added anything yet. Check back soon.")));
   }
 
