@@ -24,6 +24,7 @@
     "Night": "Шөнө",
     "Sign out": "Гарах",
     "Language": "Хэл",
+    "More": "Цааш",
     "Close": "Хаах",
     "You": "Та",
     "Joined": "Нэгдсэн",
