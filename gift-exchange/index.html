@@ -191,6 +191,9 @@ try {
   .row>input{flex:1}
   .x{border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 8px;border-radius:8px;line-height:1}
   .x:hover{background:#f1f0eb;color:var(--berry)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;padding:12px 18px;border-radius:999px;background:rgba(30,40,50,.92);color:#fff;font-weight:600;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:opacity .5s,transform .5s;max-width:90vw;text-align:center}
+  .toast.err{background:#b3261e}
+  .toast.out{opacity:0;transform:translate(-50%,8px)}
   .photo-pick{display:flex;align-items:center;gap:16px}
   .locked{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.6);color:var(--ink)}
   .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px}
@@ -1044,10 +1047,11 @@ try {
     S.dirty = false;
   }
 
+  function toast(t, kind){ var el = document.createElement("div"); el.className = "toast " + (kind||"ok"); el.textContent = t; document.body.appendChild(el); setTimeout(function(){ el.classList.add("out"); }, 2600); setTimeout(function(){ el.remove(); }, 3200); }
   async function saveProfile(){
     var d = S.draft, name = d.name.trim(), existing = me();
     var needAcct = !existing && !S.sid, em = S.auth.u.trim().toLowerCase();
-    function bad(t){ S.msg = {t:"err", s:t}; render(); }
+    function bad(t){ S.msg = {t:"err", s:t}; toast(t,"err"); render(); }
     if (needAcct){
       if (!emailOk(em)) return bad("Enter a valid email address. You'll use it to sign in.");
       if (S.auth.p.length < 6) return bad("Choose a password with at least 6 characters.");
@@ -1066,14 +1070,15 @@ try {
       await S.db.doc("participants/"+uid).set(rec);
       upsertPerson(uid, rec);
       S.saving = false; S.dirty = false; S.draft = null; S.ed = null; S.signingUp = false;
-      if (!existing){ S.auth = {u:"",p:"",p2:"",np:""}; S.tab = "home"; S.msg = {t:"ok", s:"Welcome! You're in."}; }
-      else S.msg = {t:"ok", s:"Saved."};
+      if (!existing){ S.auth = {u:"",p:"",p2:"",np:""}; S.tab = "home"; S.msg = {t:"ok", s:"Welcome! You're in."}; toast("Welcome! You're in \u2713"); }
+      else { S.msg = {t:"ok", s:"Saved."}; toast("Saved \u2713"); }
     } catch(e){
       S.saving = false; S.signingUp = false;
       var denied = e && e.code === "permission-denied";
       S.msg = {t:"err", s: needAcct && e && /^auth\//.test(e.code||"") ? authMsg(e)
         : denied ? (S.meta ? "Sign-ups closed when the names were drawn. Ask the organizer if you still need to join." : "Couldn't save. Please sign out, sign back in and try again.")
         : "Couldn't save just now. Please try again."};
+      toast(S.msg.s, "err");
     }
     render();
   }
@@ -1411,7 +1416,8 @@ try {
       var ctx = c.getContext("2d"), k = 256/V, g = geom();
       ctx.fillStyle = "#fff"; ctx.fillRect(0,0,256,256);
       ctx.drawImage(ed.img,(V/2+ed.ox-g.w/2)*k,(V/2+ed.oy-g.h/2)*k,g.w*k,g.h*k);
-      d.photo = c.toDataURL("image/jpeg",0.85); S.dirty = true; S.ed = null; render();
+      d.photo = c.toDataURL("image/jpeg",0.85); S.dirty = true; S.ed = null;
+      if (me() && !S.saving) saveProfile(); else render();
     }
     return h("div",{class:"editor"},
       h("div",{class:"vpwrap"}, framed(d.frame, vp, V)),
@@ -1627,7 +1633,9 @@ try {
       app.replaceChildren.apply(app, [topbar()].concat(S.slow ? [h("div",{class:"card empty"}, h("p",{class:"sub"},"This is taking a while. The page will update when it connects."))] : []));
       return;
     }
+    var _y = window.scrollY;
     app.replaceChildren(topbar(), body());
+    if (_y > 0 && Math.abs(window.scrollY - _y) > 2) window.scrollTo(0, _y);
     if (S.focusIdx != null){
       var ins = app.querySelectorAll(".row input");
       if (ins[S.focusIdx]) ins[S.focusIdx].focus();
