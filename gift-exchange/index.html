@@ -242,9 +242,6 @@ try {
   .frname{margin-right:auto;color:var(--muted);font-size:13px}
   .dice{border:0;background:none;font-size:18px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:8px}
   .dice:hover{background:rgba(120,120,110,.14)}
-  .fgrp{margin-top:8px}
-  .fgl{font:600 11px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-  body.mn .fgl{letter-spacing:.02em;text-transform:none}
   .fgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px;justify-items:center;max-width:340px}
   .fsw{padding:6px;border-radius:50%;border:2px solid transparent;background:none;cursor:pointer;line-height:0;transition:transform .15s,border-color .15s}
   .fsw:hover{transform:scale(1.1)}
@@ -1584,18 +1581,14 @@ try {
   }
   function frameChips(d){
     var cur = frameDef(d.frame);
-    function row(g){
-      return h("div",{class:"fgrp"}, h("div",{class:"fgl"}, g),
-        h("div",{class:"fgrid",role:"radiogroup","aria-label":g}, FRAMES.filter(function(f){ return f[3] === g; }).map(function(f){
-          var on = !!cur && cur[0] === f[0];
-          return h("button",{type:"button",class:"fsw"+(on?" on":""),role:"radio","aria-checked":on?"true":"false","aria-label":f[1],title:f[1],onclick:function(){ pickFrame(d, on ? "none" : f[0]); }},
-            avatar({name:d.name||"?",photo:d.photo,frame:f[0]},36));
-        })));
-    }
     return h("div",null,
       h("div",{class:"frhead"}, h("label",null,"Frame"), h("span",{class:"frname"}, cur ? cur[1] : "None"),
         h("button",{class:"dice",type:"button","aria-label":"Surprise me",title:"Surprise me",onclick:function(){ pickFrame(d, FRAMES[Math.floor(Math.random()*FRAMES.length)][0]); }}, "\uD83C\uDFB2")),
-      row("Masculine"), row("Feminine"));
+      h("div",{class:"fgrid",role:"radiogroup","aria-label":"Frame"}, FRAMES.map(function(f){
+        var on = !!cur && cur[0] === f[0];
+        return h("button",{type:"button",class:"fsw"+(on?" on":""),role:"radio","aria-checked":on?"true":"false","aria-label":f[1],title:f[1],onclick:function(){ pickFrame(d, on ? "none" : f[0]); }},
+          avatar({name:d.name||"?",photo:d.photo,frame:f[0]},36));
+      })));
   }
   function photoRow(d, fileInput){
     return h("div",null,
