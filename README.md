@@ -1,6 +1,20 @@
 # ❄️ Family White Christmas 🎅
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/atsogt/Family_White_Christmas/main/assets/winter-banner.png" alt="Snowy sunset through a birch forest" width="100%" />
+</p>
+
 ### *A very secret, very festive Santa operation for the Tsogtbaatar, Dagvadorj, Lee, Ganbold & Bilguun crews*
+
+---
+
+<p align="center">
+  <video src="https://raw.githubusercontent.com/atsogt/Family_White_Christmas/main/assets/intro.mp4" autoplay loop muted playsinline controls width="100%">
+    Your browser can't play the video — grab the clip at <code>assets/intro.mp4</code>.
+  </video>
+  <br />
+  <sub>✨ a little holiday magic, animated ✨</sub>
+</p>
 
 ---
 
