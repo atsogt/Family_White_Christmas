@@ -720,7 +720,10 @@ try {
   var GXI = window.GXI || {lang:"en", T:function(x){ return x; }, set:function(){}, apply:function(){}, onChange:function(){}};
   var T = GXI.T;
   var BUDGET = 100;
-  var FAMILIES = ["Tsogtbaatar family","Bilguun family","Dagvadorj family","Lee family","Ganbold family","Other"];
+  var FAMILIES = ["Tsogtbaatar family","Bilguun family","Khosbayar family","Lee family","Ankhbayar family","Other"];
+  // old family names saved in earlier sign-ups still land in the right group
+  var FAMILY_ALIAS = {"dagvadorj family":"Khosbayar family","ganbold family":"Ankhbayar family"};
+  function canonFam(f){ var a = FAMILY_ALIAS[String(f||"").toLowerCase().trim()]; return a || f; }
   var app = document.getElementById("app");
   var ORG_NAME = "anand tsogtbaatar";
   var ORG_ID = "t-anand";   // Anand Tsogtbaatar is the organizer
@@ -728,10 +731,10 @@ try {
     var src = {
       "Tsogtbaatar family":["Erdenee Tsogtbaatar","Enktsetseg Dagvadorj","Anand Tsogtbaatar"],
       "Bilguun family":["Bilguun Tsogtbaatar","Maria Tsogtbaatar","Elisa Enkh Tsogtbaatar"],
-      "Dagvadorj family":["Khosbayar Dagvadorj","Nara Magsar","Kevin Dagvadorj","Sofia Dagvadorj"],
+      "Khosbayar family":["Khosbayar Dagvadorj","Nara Magsar","Kevin Dagvadorj","Sofia Dagvadorj"],
       "Lee family":["Chang Lee","Tuyatsetseg Dagvadorj","Dulgoon Tuyatsetseg","Kenny Lee","Julia Lee","Leah"],
-      "Ganbold family":["Ankhbayar Ganbold","Altantuya Oyunbaatar","Amarlin","Enkhjin","Evel","Enkhee Eej"]
-    }, out = [], keepId = {"Evel":"t-eval","Tuyatsetseg Dagvadorj":"t-tuyatseg-dagvadorj"};   // renamed people keep their original id so an existing sign-up stays linked
+      "Ankhbayar family":["Ankhbayar Ganbold","Altantuya Oyunbaatar","Amarlin Ankhbayar","Enkhjin Ankhbayar","Iveel Ankhbayar","Enkhtuya Dagvadorj"]
+    }, out = [], keepId = {"Iveel Ankhbayar":"t-eval","Amarlin Ankhbayar":"t-amarlin","Enkhjin Ankhbayar":"t-enkhjin","Enkhtuya Dagvadorj":"t-enkhee-eej","Tuyatsetseg Dagvadorj":"t-tuyatseg-dagvadorj"};   // renamed people keep their original id so an existing sign-up stays linked
     Object.keys(src).forEach(function(f){
       src[f].forEach(function(n){
         var id = n === "Anand Tsogtbaatar" ? ORG_ID : (keepId[n] || "t-" + n.toLowerCase().replace(/[^a-z0-9]+/g,"-"));
@@ -745,11 +748,12 @@ try {
   function fixPerson(x){
     var r = x.rosterId && STATIC_BY_ID[x.rosterId];
     if (r){ x.name = r.name; x.family = r.family; x.household = r.family; }
+    else { x.family = canonFam(x.family); x.household = canonFam(x.household); }
     return x;
   }
   function withStatic(list){
     var ids = {}; STATIC_ROSTER.forEach(function(r){ ids[r.id] = true; });
-    return STATIC_ROSTER.concat(list.filter(function(r){ return !ids[r.id]; }));
+    return STATIC_ROSTER.concat(list.filter(function(r){ return !ids[r.id]; }).map(function(r){ r.family = canonFam(r.family); return r; }));
   }
 
   function h(tag, props){
@@ -928,7 +932,7 @@ try {
   function byId(id){ return S.people.find(function(p){ return p.id === id; }) || null; }
   function famOf(p){
     var sr = p.rosterId && STATIC_BY_ID[p.rosterId]; if (sr) return sr.family;
-    var raw = norm(p.family || p.household);
+    var raw = norm(canonFam(p.family || p.household));
     for (var i=0;i<FAMILIES.length;i++) if (norm(FAMILIES[i]) === raw) return FAMILIES[i];
     return p.family || p.household || "Other";
   }
@@ -1142,27 +1146,33 @@ try {
 
   // ---------- draw ----------
   function shuffle(a){ a = a.slice(); for (var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+  // Everyone gets exactly one person from another family. Nobody is paired both ways (if A drew B, B never drew A),
+  // so no one can work out who drew them. If that is impossible for a tiny group, mutual pairs are allowed as a last resort.
   function makeDraw(people){
     if (people.length < 2) return null;
     function key(p){ var f = norm(famOf(p)); return (!f || f === "other") ? ("solo:"+p.id) : f; }
     var size = {};
     people.forEach(function(p){ size[key(p)] = (size[key(p)]||0)+1; });
-    var givers = shuffle(people).sort(function(a,b){ return size[key(b)] - size[key(a)]; });
-    var taken = {}, result = {}, steps = 0;
-    function go(i){
-      if (i === givers.length) return true;
-      if (++steps > 200000) return false;
-      var g = givers[i], cands = shuffle(people);
-      for (var c = 0; c < cands.length; c++){
-        var r = cands[c];
-        if (taken[r.id] || key(r) === key(g)) continue;
-        taken[r.id] = true; result[g.id] = r.id;
-        if (go(i+1)) return true;
-        delete taken[r.id]; delete result[g.id];
+    function attempt(noMutual){
+      var givers = shuffle(people).sort(function(a,b){ return size[key(b)] - size[key(a)]; });
+      var taken = {}, result = {}, steps = 0;
+      function go(i){
+        if (i === givers.length) return true;
+        if (++steps > 200000) return false;
+        var g = givers[i], cands = shuffle(people);
+        for (var c = 0; c < cands.length; c++){
+          var r = cands[c];
+          if (taken[r.id] || key(r) === key(g)) continue;
+          if (noMutual && result[r.id] === g.id) continue;
+          taken[r.id] = true; result[g.id] = r.id;
+          if (go(i+1)) return true;
+          delete taken[r.id]; delete result[g.id];
+        }
+        return false;
       }
-      return false;
+      return go(0) ? result : null;
     }
-    return go(0) ? result : null;
+    return attempt(true) || attempt(false);
   }
 
   // ---------- roster / status ----------
