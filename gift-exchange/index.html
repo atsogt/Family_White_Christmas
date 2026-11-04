@@ -239,6 +239,18 @@ try {
   body.night .fopt{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2)}
   body.night .fopt:hover{background:rgba(255,255,255,.14)}
   body.night .fopt.on{background:rgba(255,255,255,.18);border-color:var(--pine)}
+  .cd{text-align:center}
+  .cd .sub{margin-bottom:14px}
+  .cd-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:420px;margin:0 auto}
+  .cd-box{border-radius:16px;padding:12px 4px 9px;background:linear-gradient(160deg,rgba(255,255,255,.85),rgba(255,230,214,.7));border:1px solid rgba(192,80,43,.2);box-shadow:0 4px 14px rgba(192,80,43,.12)}
+  .cd-n{display:block;font:600 clamp(26px,8vw,38px)/1.05 Fraunces,"Noto Serif",Georgia,serif;color:var(--pine);font-variant-numeric:tabular-nums}
+  .cd-box span{display:block;margin-top:4px;font:600 11px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  body.night .cd-box{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);box-shadow:none}
+  .warnbox{border-radius:12px;padding:12px 14px;margin:12px 0;background:#fff1d6;border:1px solid #f0b94c;color:#6b4300;font-size:14px}
+  .warnbox p{margin:6px 0 0}
+  small.nogift{color:#b45309;font-weight:600}
+  body.night .warnbox{background:rgba(255,190,80,.14);border-color:rgba(255,190,80,.5);color:#ffd99a}
+  body.night small.nogift{color:#ffc266}
   .photo-pick{display:flex;align-items:center;gap:16px}
   .locked{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.6);color:var(--ink)}
   .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px}
@@ -1194,6 +1206,38 @@ try {
     catch(e){ S.msg = {t:"err", s:authMsg(e)}; }
     render();
   }
+  // Names are drawn automatically at Thanksgiving 2026: Thursday Nov 26, 7:00 PM Eastern (UTC-5) = Nov 27 00:00 UTC
+  var DRAW_AT = Date.UTC(2026, 10, 27, 0, 0, 0);
+  function cdParts(ms){ var t = Math.max(0, Math.floor(ms / 1000)); return [Math.floor(t / 86400), Math.floor(t % 86400 / 3600), Math.floor(t % 3600 / 60), t % 60]; }
+  function cdText(v, i){ return i === 0 ? String(v) : (v < 10 ? "0" + v : String(v)); }
+  function countdownCard(){
+    if (S.meta) return null;                                   // already drawn
+    var left = DRAW_AT - Date.now(), done = left <= 0;
+    var lbl = ["Days","Hours","Min","Sec"], p = cdParts(left);
+    return h("div",{class:"card cd"},
+      h("div",{class:"eyebrow"}, "\ud83e\udd83 ", "Thanksgiving draw"),
+      h("h2",null, done ? "Drawing names\u2026" : "Names are drawn on Thanksgiving"),
+      h("p",{class:"sub"}, "Thursday, Nov 26 \u00b7 7:00 PM ET"),
+      done ? null : h("div",{class:"cd-row",role:"timer"}, lbl.map(function(l, i){
+        return h("div",{class:"cd-box"}, h("b",{class:"cd-n","data-i":String(i)}, cdText(p[i], i)), h("span",null,l));
+      })));
+  }
+  function maybeAutoDraw(){
+    if (!isOrg() || !S.gotDraw || !S.gotPeople || S.meta || S.drawing || Date.now() < DRAW_AT) return;
+    if (Date.now() < (S.drawWait || 0) || S.people.length < 3) return;
+    var key = S.people.map(function(x){ return x.id; }).sort().join(",");
+    if (S.drawTried === key) return;
+    S.drawTried = key; S.drawing = true;
+    runDraw().then(function(){ S.drawing = false; }, function(){ S.drawing = false; });
+  }
+  function tickCountdown(){
+    var left = DRAW_AT - Date.now(), ns = document.querySelectorAll(".cd-n");
+    if (ns.length){
+      if (left <= 0) render();
+      else { var p = cdParts(left); ns.forEach(function(n){ var i = +n.getAttribute("data-i"); var t = cdText(p[i], i); if (n.textContent !== t) n.textContent = t; }); }
+    }
+    maybeAutoDraw();
+  }
   async function runDraw(){
     var res = makeDraw(S.people);
     if (!res){
@@ -1206,7 +1250,7 @@ try {
       ops.push({t:"set", path:"meta/draw", data:{drawnAt:now, count:S.people.length}});
       await S.db.batch(ops);
       S.orgMsg = {t:"ok", s:"Names drawn. Everyone can now open \u201cMy match\u201d."};
-    } catch(e){ S.orgMsg = {t:"err", s:"Couldn't save the draw. Please try again."}; }
+    } catch(e){ S.orgMsg = {t:"err", s:"Couldn't save the draw. Please try again."}; S.drawTried = null; S.drawWait = Date.now() + 30000; }
     S.confirm = null; render();
   }
   async function clearDraw(){
@@ -1433,6 +1477,7 @@ try {
             tot ? h("div",{class:"bar"}, h("i",{style:"width:"+Math.round(inN/tot*100)+"%"})) : null),
           !m ? h("div",{class:"actions",style:"margin:0"}, h("button",{class:"btn",onclick:function(){ S.tab="in"; render(); }},"Sign in"), h("button",{class:"btn ghost",onclick:function(){ S.tab="me"; render(); }},"Create profile")) : null)),
       note(S.msg),
+      countdownCard(),
       pick ? h("div",{class:"card",style:"display:flex;align-items:center;gap:16px;flex-wrap:wrap"},
         avatar(pick,56),
         h("div",{class:"grow"}, h("div",{class:"eyebrow"},"You drew"), h("h2",null,pick.name), h("p",{class:"sub"},famOf(pick)+" · $"+BUDGET+" limit")),
@@ -1671,6 +1716,9 @@ try {
   function orgView(){
     var ps = S.people.slice().sort(function(a,b){ return norm(famOf(a)).localeCompare(norm(famOf(b))) || norm(a.name).localeCompare(norm(b.name)); });
     var drawn = !!(S.draw && S.draw.assignments);
+    var noIdea = ps.filter(function(p){ return !(p.wishlist||[]).length; });
+    var notJoined = S.roster.filter(function(r){ return !S.people.some(function(p){ return p.rosterId === r.id; }); });
+    var warnN = noIdea.length + notJoined.length;
     var armed = S.confirm === "draw", armedClear = S.confirm === "clear";
     var late = drawn ? ps.filter(function(p){ return (p.joinedAt||0) > (S.draw.drawnAt||0); }).length : 0;
     var claimed = {};
@@ -1701,20 +1749,22 @@ try {
       }));
 
     var drawCard = h("div",{class:"card"},
-      h("h2",null,"Draw names"),
-      h("p",{class:"sub"},"Matches never pair two people from the same family. Needs at least 3 people who have joined."),
+      h("h2",null,"Name draw"),
+      h("p",{class:"sub"},"Names are drawn automatically on Thanksgiving, Thursday Nov 26 at 7:00 PM ET, while your page is open. If it is closed then, opening it later draws right away. Matches never pair two people from the same family."),
       (S.orgMsg && S.orgMsg.w==="people") ? null : note(S.orgMsg),
+      warnN ? h("div",{class:"warnbox",role:"alert"},
+        h("b",null,"\u26a0\ufe0f ","Heads up before the draw"),
+        notJoined.length ? h("p",null, h("strong",null,"Not joined yet"), ": ", notJoined.map(function(r){ return r.name; }).join(", ")) : null,
+        noIdea.length ? h("p",null, h("strong",null,"No gift idea yet"), ": ", noIdea.map(function(r){ return r.name; }).join(", ")) : null)
+      : (ps.length ? h("div",{class:"note ok"},"Everyone has joined and added a gift idea. Ready to draw.") : null),
+      (!drawn && Date.now() >= DRAW_AT && ps.length < 3) ? h("div",{class:"note err"},"Fewer than 3 people have joined, so no draw can run yet.") : null,
       drawn ? h("div",{class:"note ok"},"Drawn for "+(S.draw.count||"")+" people."+(late?(" "+late+" newer sign-up"+(late>1?"s are":" is")+" not included yet."):"")) : null,
-      h("div",{class:"actions"},
-        h("button",{class:"btn"+(armed?" danger":""),disabled:ps.length<3,onclick:function(){
-          if (drawn && !armed){ S.confirm="draw"; return render(); }
+      drawn ? h("div",{class:"actions"},
+        h("button",{class:"btn ghost"+(armed?" danger":""),onclick:function(){
+          if (!armed){ S.confirm="draw"; return render(); }
           runDraw();
-        }}, armed ? "Yes, redraw everyone" : (drawn ? "Redraw names" : "Draw names")),
-        drawn ? h("button",{class:"btn ghost"+(armedClear?" danger":""),onclick:function(){
-          if (!armedClear){ S.confirm="clear"; return render(); }
-          clearDraw();
-        }}, armedClear ? "Yes, clear" : "Clear draw") : null,
-        (armed||armedClear) ? h("button",{class:"btn ghost small",onclick:function(){ S.confirm=null; render(); }},"Cancel") : null),
+        }}, armed ? "Yes, redraw everyone" : "Redraw names"),
+        armed ? h("button",{class:"btn ghost small",onclick:function(){ S.confirm=null; render(); }},"Cancel") : null) : null,
       armed ? h("div",{class:"hint"},"Redrawing replaces every current match.") : null);
 
     var peopleCard = h("div",{class:"card"},
@@ -1723,14 +1773,14 @@ try {
       ps.length ? ps.map(function(p){
         var rm = S.confirm === "rm:"+p.id;
         return h("div",{class:"org-row"}, avatar(p,36),
-          h("div",{class:"grow",style:"flex:1"}, p.name, h("small",null, famOf(p))),
+          h("div",{class:"grow",style:"flex:1"}, p.name, h("small",null, famOf(p)), (p.wishlist||[]).length ? null : h("small",{class:"nogift"},"\u26a0\ufe0f ","No gift idea yet")),
           p.id === S.sid ? h("span",{class:"chip you"},"You") : h("button",{class:"btn ghost small"+(rm?" danger":""),onclick:function(){
             if (!rm){ S.confirm="rm:"+p.id; return render(); }
             removePerson(p.id);
           }}, rm ? "Confirm" : "Remove"),
           rm ? h("button",{class:"btn ghost small",onclick:function(){ S.confirm=null; render(); }},"Cancel") : null);
       }) : h("p",{class:"sub"},"No one yet."));
-    return h("div",null, rosterCard, drawCard, peopleCard);
+    return h("div",null, countdownCard(), drawCard, rosterCard, peopleCard);
   }
 
   function effTab(){
@@ -2136,6 +2186,7 @@ try {
     render();
   });
   GXI.apply(); paintCredit();
+  setInterval(tickCountdown, 1000);
   intro();
   boot();
 })();
