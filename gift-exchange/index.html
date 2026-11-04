@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Family Gift Exchange</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Dancing+Script:wght@600;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Dancing+Script:wght@600;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Noto+Serif:wght@600&family=Marck+Script&display=swap" rel="stylesheet">
+<script src="i18n.js"></script>
 <script>window.__fbReady=new Promise(function(r){window.__fbResolve=r;});</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -71,7 +72,7 @@ try {
     radial-gradient(700px 520px at 104% 24%,var(--a2),transparent 70%),
     radial-gradient(580px 440px at 38% 106%,var(--a3),transparent 70%)}
   .wrap{max-width:860px;margin:0 auto;padding:14px 9px 24px}
-  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
+  h1,h2,h3{font-family:Fraunces,"Noto Serif",Georgia,serif;font-weight:600;margin:0;letter-spacing:-.01em}
 
   /* top bar */
   .top{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 26px}
@@ -118,7 +119,7 @@ try {
 
   /* status hero */
   .status{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
-  .status .big{font-family:Fraunces,serif;font-size:40px;line-height:1;color:var(--pine)}
+  .status .big{font-family:Fraunces,"Noto Serif",serif;font-size:40px;line-height:1;color:var(--pine)}
   .status .big small{font-size:18px;color:var(--muted);font-family:Inter,sans-serif;font-weight:500}
   .bar{height:8px;border-radius:99px;background:#efeee9;overflow:hidden;margin-top:10px;min-width:180px}
   .bar>i{display:block;height:100%;background:var(--pine);border-radius:99px;transition:width .4s}
@@ -194,6 +195,50 @@ try {
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;padding:12px 18px;border-radius:999px;background:rgba(30,40,50,.92);color:#fff;font-weight:600;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:opacity .5s,transform .5s;max-width:90vw;text-align:center}
   .toast.err{background:#b3261e}
   .toast.out{opacity:0;transform:translate(-50%,8px)}
+  /* ===== language switch ===== */
+  .langsw{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.55);border:1px solid var(--line)}
+  .langsw button{font:700 12px Inter,system-ui,sans-serif;letter-spacing:.04em;padding:6px 11px;border-radius:999px;border:0;background:none;color:var(--muted);cursor:pointer}
+  .langsw button.on{background:var(--pine);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .langsw button:focus-visible{outline:2px solid var(--pine);outline-offset:1px}
+  body.night .langsw{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22)}
+  .intro .langsw{position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;z-index:20;background:rgba(10,14,34,.5);border-color:rgba(255,255,255,.3);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .intro .langsw button{color:#dfe7ff;font-size:13px;padding:7px 14px}
+  .intro .langsw button.on{background:#ffd9a0;color:#2a1d17}
+  .intro.mn .hw text{font-family:"Marck Script","Dancing Script",cursive}
+  body.mn .tab,body.mn .btn,body.mn .quiet,body.mn .opt{letter-spacing:0}
+  /* ===== profile frames ===== */
+  @property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
+  @keyframes fspin{to{--a:360deg}}
+  @keyframes fs24{to{background-position:24px 0}}
+  @keyframes fs240{to{background-position:240px 0}}
+  @keyframes fpulse{0%,100%{box-shadow:0 0 5px #ff2bd6,0 0 12px #22d3ee}50%{box-shadow:0 0 11px #ff2bd6,0 0 24px #22d3ee}}
+  @keyframes fblink{0%,100%{filter:brightness(.85) saturate(1.15)}50%{filter:brightness(1.35) saturate(1.5)}}
+  @keyframes fflick{0%,100%{box-shadow:0 0 8px #ff6a00,0 0 16px rgba(255,140,0,.7)}50%{box-shadow:0 0 14px #ffb300,0 0 28px rgba(255,80,0,.85)}}
+  .fr{position:relative}
+  .fr.f-rainbow{background:conic-gradient(from var(--a),#ff5e5e,#ffb347,#ffe95c,#5ee27a,#4db8ff,#a47cff,#ff6fd8,#ff5e5e);animation:fspin 4s linear infinite}
+  .fr.f-neon{background:#1a0636;animation:fpulse 1.6s ease-in-out infinite}
+  .fr.f-candy{background:linear-gradient(135deg,#d7263d 25%,#fff 25% 50%,#d7263d 50% 75%,#fff 75%) 0 0/24px 24px;animation:fs24 1.2s linear infinite}
+  .fr.f-aurora{background:linear-gradient(120deg,#22d3a0,#4f7cff,#b05cff,#ff6fd8,#22d3a0) 0 0/240px 100%;animation:fs240 5s linear infinite}
+  .fr.f-lights{background:repeating-conic-gradient(#ff4d4d 0 20deg,#26212f 20deg 30deg,#ffd84d 30deg 50deg,#26212f 50deg 60deg,#4dd0ff 60deg 80deg,#26212f 80deg 90deg,#5ee27a 90deg 110deg,#26212f 110deg 120deg);animation:fblink 1.4s ease-in-out infinite}
+  .fr.f-fire{background:conic-gradient(from var(--a),#ff3d00,#ff9100,#ffea00,#ff9100,#ff3d00);animation:fspin 2.4s linear infinite,fflick 1s ease-in-out infinite}
+  .fr.f-galaxy{background:radial-gradient(2px 2px at 20% 25%,#fff,transparent),radial-gradient(1.5px 1.5px at 75% 30%,#fff,transparent),radial-gradient(2px 2px at 40% 80%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 75%,#cfd8ff,transparent),radial-gradient(1.5px 1.5px at 10% 70%,#fff,transparent),linear-gradient(135deg,#6d28d9,#1e1b4b 55%,#0b0b20);animation:fblink 3s ease-in-out infinite}
+  .fr.f-frost{background:linear-gradient(110deg,#bfe6ff 30%,#fff 45% 55%,#bfe6ff 70%) 0 0/240px 100%;animation:fs240 2.6s linear infinite}
+  .fb{position:absolute;right:-6%;top:-8%;line-height:1;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));transform:rotate(12deg)}
+  .fr.f-crown .fb{right:auto;left:50%;top:-26%;transform:translateX(-50%) rotate(-6deg)}
+  .fr.f-antlers .fb{right:auto;left:50%;top:-28%;transform:translateX(-50%)}
+  @media (prefers-reduced-motion:reduce){.fr{animation:none!important}.fb{animation:none!important}}
+  .frhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px}
+  .frhead label{margin:0}
+  .fgroup{margin-top:8px}
+  .fgl{font:600 11px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 0 6px}
+  .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px}
+  .fopt{display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 4px 8px;border-radius:14px;border:1px solid rgba(150,90,60,.22);background:rgba(255,255,255,.6);color:var(--ink);cursor:pointer;font:500 12px "Zen Kaku Gothic New",Inter,sans-serif;transition:transform .15s,border-color .15s,background .15s}
+  .fopt:hover{transform:translateY(-2px);background:rgba(255,255,255,.9)}
+  .fopt.on{border-color:var(--pine);background:#fff;box-shadow:0 4px 14px rgba(192,80,43,.28)}
+  .fopt .fn{line-height:1.15;text-align:center}
+  body.night .fopt{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2)}
+  body.night .fopt:hover{background:rgba(255,255,255,.14)}
+  body.night .fopt.on{background:rgba(255,255,255,.18);border-color:var(--pine)}
   .photo-pick{display:flex;align-items:center;gap:16px}
   .locked{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.6);color:var(--ink)}
   .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px}
@@ -209,7 +254,7 @@ try {
   .match{text-align:center;padding:32px 20px}
   .match .avatar{margin:0 auto 14px;box-shadow:0 0 0 4px #fff,0 0 0 5px var(--line)}
   .match .tag{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--berry);font-weight:600;margin:0}
-  .match .name{font-family:Fraunces,serif;font-size:30px;font-weight:600;margin:4px 0 10px}
+  .match .name{font-family:Fraunces,"Noto Serif",serif;font-size:30px;font-weight:600;margin:4px 0 10px}
   .wish{list-style:none;margin:12px 0 0;padding:0}
   .wish li{display:flex;gap:12px;padding:12px 0;border-top:1px solid #f1f0eb;word-break:break-word}
   .wish li:first-child{border-top:0}
@@ -637,6 +682,8 @@ try {
 <script>
 (function(){
   "use strict";
+  var GXI = window.GXI || {lang:"en", T:function(x){ return x; }, set:function(){}, apply:function(){}, onChange:function(){}};
+  var T = GXI.T;
   var BUDGET = 100;
   var FAMILIES = ["Tsogtbaatar family","Dagvadorj family","Lee family","Ganbold family","Other"];
   var app = document.getElementById("app");
@@ -670,7 +717,7 @@ try {
       if (k === "class") e.className = v;
       else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), v);
       else if (k === "value") e.value = v;
-      else e.setAttribute(k, v === true ? "" : v);
+      else e.setAttribute(k, v === true ? "" : ((k === "placeholder" || k === "aria-label" || k === "title" || k === "alt") ? T(String(v)) : v));
     }
     for (var i = 2; i < arguments.length; i++) add(e, arguments[i]);
     return e;
@@ -678,7 +725,7 @@ try {
   function add(e, kid){
     if (kid == null || kid === false) return;
     if (Array.isArray(kid)) { kid.forEach(function(x){ add(e, x); }); return; }
-    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    e.append(kid.nodeType ? kid : document.createTextNode(T(String(kid))));
   }
 
   var S = {
@@ -851,15 +898,46 @@ try {
     var ini = nm.trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||"";}).join("").toUpperCase() || "?";
     return h("div",{class:"avatar",style:style+"background:hsl("+hue(nm)+",32%,42%);font-size:"+Math.round(size*0.38)+"px"}, ini);
   }
-  var FRAMES = [["none","None",""],["gold","Gold","linear-gradient(135deg,#f7e08a,#c9962f 50%,#f7e08a)"],
-    ["holiday","Holiday","repeating-conic-gradient(#c0392b 0 15deg,#2f8f5b 15deg 30deg)"],["snow","Snow","linear-gradient(135deg,#ffffff,#cfe0f5)"],
-    ["sunset","Sunset","linear-gradient(135deg,#ff9a5a,#ff5e7e 55%,#8e5bd6)"],["pine","Pine","linear-gradient(135deg,#2f8f5b,#173b2c)"]];
-  function frameBg(k){ for (var i=0;i<FRAMES.length;i++) if (FRAMES[i][0]===k) return FRAMES[i][2]; return ""; }
+  // [key, label, inline background (animated ones are styled in CSS), group, sticker]
+  var FRAMES = [
+    ["none","None","","Classic"],
+    ["gold","Gold","linear-gradient(135deg,#f7e08a,#c9962f 50%,#f7e08a)","Classic"],
+    ["holiday","Holiday","repeating-conic-gradient(#c0392b 0 15deg,#2f8f5b 15deg 30deg)","Classic"],
+    ["snow","Snow","linear-gradient(135deg,#ffffff,#cfe0f5)","Classic"],
+    ["sunset","Sunset","linear-gradient(135deg,#ff9a5a,#ff5e7e 55%,#8e5bd6)","Classic"],
+    ["pine","Pine","linear-gradient(135deg,#2f8f5b,#173b2c)","Classic"],
+    ["rainbow","Rainbow","","Glow & motion"],
+    ["neon","Neon","","Glow & motion"],
+    ["candy","Candy cane","","Glow & motion"],
+    ["aurora","Aurora","","Glow & motion"],
+    ["lights","Fairy lights","","Glow & motion"],
+    ["fire","Fire","","Glow & motion"],
+    ["galaxy","Galaxy","","Glow & motion"],
+    ["frost","Frost","","Glow & motion"],
+    ["cocoa","Cocoa","linear-gradient(135deg,#6b3f26,#c68b59 50%,#f6e3cf)","Cozy & local"],
+    ["ocean","Ocean","linear-gradient(135deg,#00c6ff,#0072ff 60%,#00e5c0)","Cozy & local"],
+    ["sakura","Sakura","linear-gradient(135deg,#ffd9ec,#ff9ac8 55%,#ffe3f1)","Cozy & local","🌸"],
+    ["steppe","Steppe","linear-gradient(135deg,#9bd36a,#4f9a3a 55%,#e8d28a)","Cozy & local","🐎"],
+    ["sky","Blue sky","linear-gradient(135deg,#8fd6ff,#1e6bff 55%,#e8f6ff)","Cozy & local","☁️"],
+    ["santa","Santa","linear-gradient(135deg,#d7263d,#ff8a96)","Stickers","🎅"],
+    ["crown","Crown","linear-gradient(135deg,#f7e08a,#c9962f 50%,#f7e08a)","Stickers","👑"],
+    ["antlers","Antlers","linear-gradient(135deg,#7b4a2d,#d2a679)","Stickers","🦌"],
+    ["bow","Bow","linear-gradient(135deg,#ff7eb6,#ffd1e8)","Stickers","🎀"],
+    ["tree","Tree","linear-gradient(135deg,#1f7a4d,#6fcf97)","Stickers","🎄"],
+    ["snowman","Snowman","linear-gradient(135deg,#e8f6ff,#9ad4ff)","Stickers","⛄"],
+    ["gift","Gift","repeating-conic-gradient(#d7263d 0 30deg,#ffd84d 30deg 60deg)","Stickers","🎁"],
+    ["heart","Heart","linear-gradient(135deg,#ff3d6e,#ff9aa8)","Stickers","❤️"],
+    ["star","Star","linear-gradient(135deg,#ffe36e,#ff9f1c)","Stickers","⭐"],
+    ["sparkle","Sparkle","linear-gradient(135deg,#c084fc,#f0abfc 50%,#fde68a)","Stickers","✨"]
+  ];
+  function frameDef(k){ for (var i=0;i<FRAMES.length;i++) if (FRAMES[i][0]===k) return FRAMES[i]; return null; }
   function framed(k, inner, size){
-    var bg = frameBg(k); if (!bg) return inner;
+    var f = frameDef(k); if (!f || f[0] === "none") return inner;
     var r = Math.min(10, Math.max(3, Math.round(size*0.07)));
     inner.style.boxShadow = "0 0 0 2px rgba(255,255,255,.92)";
-    return h("span",{class:"fr",style:"padding:"+r+"px;background:"+bg}, inner);
+    var el = h("span",{class:"fr f-"+f[0],style:"padding:"+r+"px;"+(f[2] ? "background:"+f[2] : "")}, inner);
+    if (f[4]) el.appendChild(h("span",{class:"fb","aria-hidden":"true",style:"font-size:"+Math.max(13,Math.round(size*0.36))+"px"}, f[4]));
+    return el;
   }
   function avatar(p, size){ return framed(p && p.frame, rawAvatar(p, size), size || 40); }
   function linkify(text){
@@ -1076,7 +1154,7 @@ try {
     S.dirty = false;
   }
 
-  function toast(t, kind){ var el = document.createElement("div"); el.className = "toast " + (kind||"ok"); el.textContent = t; document.body.appendChild(el); setTimeout(function(){ el.classList.add("out"); }, 2600); setTimeout(function(){ el.remove(); }, 3200); }
+  function toast(t, kind){ var el = document.createElement("div"); el.className = "toast " + (kind||"ok"); el.textContent = T(t); document.body.appendChild(el); setTimeout(function(){ el.classList.add("out"); }, 2600); setTimeout(function(){ el.remove(); }, 3200); }
   async function saveProfile(){
     var d = S.draft, name = d.name.trim(), existing = me();
     var needAcct = !existing && !S.sid, em = S.auth.u.trim().toLowerCase();
@@ -1211,12 +1289,20 @@ try {
     return h("header",{class:"top"}, snowCv,
       h("div",null, h("div",{class:"eyebrow"},"Christmas 2026", h("span",{class:"sep"},"\u00B7"), h("span",{class:"bud"},"$"+BUDGET+" limit")), h("h1",null,"Family Gift Exchange")),
       h("div",{class:"top-r"},
+        langSwitch(),
         h("button",{class:"quiet",type:"button",onclick:function(){ if (!document.querySelector(".intro")) intro(); }},"Replay welcome"),
         h("button",{class:"quiet",type:"button","aria-pressed":smShown()?"true":"false",onclick:toggleSnowman}, smShown() ? "Remove snowman" : "Summon snowman"),
         h("button",{class:"viewsw"+(curView()==="night"?" is-night":""),type:"button",role:"switch","aria-checked":curView()==="night"?"true":"false","aria-label":"Switch between light view and night view",onclick:toggleView},
           h("span",{class:"vs-opt vs-l"}, h("i",{class:"vs-ic","aria-hidden":"true"},"\u2600"), "Light"), h("span",{class:"vs-opt vs-n"}, h("i",{class:"vs-ic","aria-hidden":"true"},"\u263E"), "Night")),
         m ? avatar(m,36) : null,
         m ? h("button",{class:"btn ghost small",onclick:signOut},"Sign out") : null));
+  }
+  function setLang(l){ GXI.set(l); }
+  function langSwitch(en, mn){
+    var cur = GXI.lang;
+    return h("div",{class:"langsw",role:"group","aria-label":"Language",onclick:function(ev){ ev.stopPropagation(); }},
+      h("button",{type:"button",class:cur==="en"?"on":"","aria-pressed":cur==="en"?"true":"false",lang:"en",onclick:function(){ setLang("en"); }}, en || "EN"),
+      h("button",{type:"button",class:cur==="mn"?"on":"","aria-pressed":cur==="mn"?"true":"false",lang:"mn",onclick:function(){ setLang("mn"); }}, mn || "\u041c\u041d"));
   }
   function tabsBar(){
     var m = me();
@@ -1254,7 +1340,7 @@ try {
   function openProfile(x, fam){
     closeProfile(true);
     var pr = x.person, list = (pr && pr.wishlist) || [], joined = !!pr, you = !!(pr && pr.id === S.sid), when = "";
-    if (joined && pr.joinedAt){ try { when = new Date(pr.joinedAt).toLocaleDateString(undefined, {month:"long", day:"numeric"}); } catch(e){} }
+    if (joined && pr.joinedAt){ try { when = new Date(pr.joinedAt).toLocaleDateString(GXI.lang === "mn" ? "mn-MN" : undefined, {month:"long", day:"numeric"}); } catch(e){} }
     var back = h("div",{class:"pp",onclick:function(ev){ if (ev.target === back) closeProfile(); }},
       h("div",{class:"pp-card",role:"dialog","aria-modal":"true","aria-label":x.name+" profile"},
         h("button",{class:"pp-x",type:"button","aria-label":"Close",onclick:function(){ closeProfile(); }},"\u00d7"),
@@ -1314,7 +1400,7 @@ try {
   function syncAll(){
     if (!fold_btn) return;
     var shut = fold_names.every(isFolded);
-    fold_btn.lastChild.textContent = shut ? "Expand all" : "Collapse all";
+    fold_btn.lastChild.textContent = T(shut ? "Expand all" : "Collapse all");
     fold_btn.classList.toggle("allclosed", shut);
   }
   function homeView(){
@@ -1402,11 +1488,24 @@ try {
     if (typeof src === "string") return go(src);
     var fr = new FileReader(); fr.onload = function(){ go(fr.result); }; fr.onerror = bad; fr.readAsDataURL(src);
   }
+  function pickFrame(d, key){
+    d.frame = key; S.dirty = true;
+    if (me() && !S.saving) saveProfile(); else render();      // existing profile: the new frame saves right away
+  }
   function frameChips(d){
-    return h("div",null, h("label",null,"Frame"),
-      h("div",{class:"pick"}, FRAMES.map(function(f){
-        return h("button",{type:"button",class:"opt"+((d.frame||"none")===f[0]?" on":""),onclick:function(){ d.frame = f[0]; S.dirty = true; render(); }}, f[1]);
-      })));
+    var order = [], by = {};
+    FRAMES.forEach(function(f){ if (!by[f[3]]){ by[f[3]] = []; order.push(f[3]); } by[f[3]].push(f); });
+    return h("div",null,
+      h("div",{class:"frhead"}, h("label",null,"Frame"),
+        h("button",{class:"quiet",type:"button",onclick:function(){ pickFrame(d, FRAMES[1 + Math.floor(Math.random()*(FRAMES.length-1))][0]); }}, "\uD83C\uDFB2 ", "Surprise me")),
+      order.map(function(g){
+        return h("div",{class:"fgroup"}, h("div",{class:"fgl"}, g),
+          h("div",{class:"fgrid",role:"radiogroup","aria-label":"Frame"}, by[g].map(function(f){
+            var on = (d.frame||"none") === f[0];
+            return h("button",{type:"button",class:"fopt"+(on?" on":""),role:"radio","aria-checked":on?"true":"false",onclick:function(){ pickFrame(d, f[0]); }},
+              avatar({name:d.name||"?",photo:d.photo,frame:f[0]},44), h("span",{class:"fn"}, f[1]));
+          })));
+      }));
   }
   function photoRow(d, fileInput){
     return h("div",null,
@@ -1769,20 +1868,33 @@ try {
     var glow = h("div",{class:"glow",style:"width:"+gs+"px;height:"+gs+"px;left:"+(lx-gs/2)+"px;top:"+(ly-gs/2)+"px"});
     var art = h("div",{class:"art"}, glow);
     var cv = h("canvas"); cv.width = vw; cv.height = vh;
-    var hw = h("b",{class:"hw","aria-label":"You\u2019re invited"});
-    var word = "You\u2019re invited", spans = "", ci = 0;
-    for (var wi = 0; wi < word.length; wi++){
-      var chh = word.charAt(wi);
-      if (chh === " ") { spans += " "; continue; }
-      spans += '<tspan class="ch" style="--i:' + (ci++) + '">' + chh + '</tspan>';
+    var hw = h("b",{class:"hw"});
+    function paintHw(){
+      var word = T("You\u2019re invited"), spans = "", ci = 0;
+      for (var wi = 0; wi < word.length; wi++){
+        var chh = word.charAt(wi);
+        if (chh === " ") { spans += " "; continue; }
+        spans += '<tspan class="ch" style="--i:' + (ci++) + '">' + chh + '</tspan>';
+      }
+      hw.setAttribute("aria-label", word);
+      hw.innerHTML = '<svg viewBox="0 0 420 104" aria-hidden="true"><text x="210" y="74" text-anchor="middle" textLength="372" lengthAdjust="spacingAndGlyphs">' + spans + '</text></svg>';
     }
-    hw.innerHTML = '<svg viewBox="0 0 420 104" aria-hidden="true"><text x="210" y="74" text-anchor="middle" textLength="372" lengthAdjust="spacingAndGlyphs">' + spans + '</text></svg>';
+    paintHw();
     // waving bear: animated WebP with real alpha (plain <img>, so it plays on every phone without autoplay or video rules)
     var bimg = h("img",{src:"bear2.webp",alt:"","aria-hidden":"true",decoding:"async",draggable:"false"});
     var bearEl = h("div",{class:"bear","aria-hidden":"true"}, bimg);
     var alive = true;
-    var el = h("div",{class:"intro",role:"presentation"}, art, cv, h("div",{class:"lbar t"}), h("div",{class:"lbar b"}), bearEl,
-      h("div",{class:"txt"}, h("small",null,"Christmas 2026"), hw, h("span",null,"Family Gift Exchange"), h("div",{class:"cred"},"Developed with ", h("span",{class:"lv"},"love"), " by Anand Tsogtbaatar"), h("div",{class:"tap"},"Tap to continue")));
+    var tsmall = h("small",null,"Christmas 2026"), tsub = h("span",null,"Family Gift Exchange"), tcred = h("div",{class:"cred"}), ttap = h("div",{class:"tap"},"Tap to continue");
+    function paintCred(){ tcred.replaceChildren(T("Developed with") + " ", h("span",{class:"lv"}, T("love")), " " + T("by Anand Tsogtbaatar")); }
+    paintCred();
+    var el = h("div",{class:"intro"+(GXI.lang==="mn"?" mn":""),role:"presentation"}, art, cv, h("div",{class:"lbar t"}), h("div",{class:"lbar b"}), bearEl,
+      h("div",{class:"txt"}, tsmall, hw, tsub, tcred, ttap), langSwitch("English", "\u041c\u043e\u043d\u0433\u043e\u043b"));
+    el.__repaint = function(){
+      el.classList.toggle("mn", GXI.lang === "mn");
+      tsmall.textContent = T("Christmas 2026"); tsub.textContent = T("Family Gift Exchange"); ttap.textContent = T("Tap to continue");
+      paintCred(); paintHw();
+      var old = el.querySelector(".langsw"); if (old) old.replaceWith(langSwitch("English", "\u041c\u043e\u043d\u0433\u043e\u043b"));
+    };
     document.body.appendChild(el);
     var ctx = cv.getContext("2d"), fl = [];
     var sp = [1,1.7,2.6].map(function(r){ var c = document.createElement("canvas"), n = Math.ceil(r*2)+2; c.width = c.height = n; var x = c.getContext("2d"); x.fillStyle = "#fff"; x.beginPath(); x.arc(n/2,n/2,r,0,6.283); x.fill(); return c; });
@@ -1809,7 +1921,7 @@ try {
       setTimeout(function(){ alive = false; el.remove(); }, 1600);
     }
     el.addEventListener("click", close);
-    document.addEventListener("keydown", function onk(e){ if (e.key === "Enter" || e.key === " " || e.key === "Escape"){ document.removeEventListener("keydown", onk); close(); } });
+    document.addEventListener("keydown", function onk(e){ if (e.target && e.target.closest && e.target.closest(".langsw")) return; if (e.key === "Enter" || e.key === " " || e.key === "Escape"){ document.removeEventListener("keydown", onk); close(); } });
   }
 
   // playful snowman: drag it anywhere, poke it and it topples; it guides people to play
@@ -1846,7 +1958,7 @@ try {
       stopT = setTimeout(function(){ if (!bub.classList.contains("on")){ cancelAnimationFrame(fol); fol = 0; bx = by = null; } }, 500);
     }
     function say(txt, ms){
-      clearTimeout(bt); bub.textContent = wrapWords(txt);
+      clearTimeout(bt); bub.textContent = wrapWords(T(txt));
       if (!bub.classList.contains("on")) bx = by = null;      // fresh bubble appears right at him
       bub.classList.add("on"); startFollow(); step(0);
       bt = setTimeout(hideBub, ms || 4600);
@@ -2012,6 +2124,18 @@ try {
     }
     requestAnimationFrame(trail);
   })();
+  function paintCredit(){
+    var c = document.querySelector(".credit>span:first-child"); if (!c) return;
+    c.innerHTML = GXI.lang === "mn"
+      ? '<i>\u2665</i> <b class="lv">\u0425\u0430\u0439\u0440\u0430\u0430\u0440</b> \u0431\u04af\u0442\u044d\u044d\u0432 \u00b7 <b class="by">Anand Tsogtbaatar</b>'
+      : '<i>\u2665</i> Developed with <b class="lv">love</b> by <b class="by">Anand Tsogtbaatar</b>';
+  }
+  GXI.onChange(function(){
+    closeProfile(true); paintCredit();
+    var i = document.querySelector(".intro"); if (i && i.__repaint) i.__repaint();
+    render();
+  });
+  GXI.apply(); paintCredit();
   intro();
   boot();
 })();
