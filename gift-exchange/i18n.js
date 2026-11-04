@@ -167,7 +167,7 @@
     "Everyone has joined and added a gift idea. Ready to draw.": "Хүн бүр нэгдэж, бэлгийн санаагаа нэмсэн. Сугалахад бэлэн.",
     // ---- welcome page ----
     "You're invited": "Та урилгатай!",
-    "Tap to continue": "Үргэлжлүүлэхийн тулд дарна уу",
+    "Tap to continue": "Дарж үргэлжлүүлнэ үү",
     "Developed with": "",
     "love": "Хайраар",
     "by Anand Tsogtbaatar": "бүтээв · Anand Tsogtbaatar",
@@ -175,6 +175,7 @@
     "None": "Хүрээгүй", "Gold": "Алтан", "Holiday": "Баярын", "Snow": "Цас", "Sunset": "Жаргах нар", "Pine": "Нарс",
     "Rainbow": "Солонго", "Neon": "Неон", "Candy cane": "Чихрийн таяг", "Aurora": "Туяа", "Fairy lights": "Гэрэлт чимэг",
     "Fire": "Гал", "Galaxy": "Галактик", "Frost": "Хяруу",
+    "Blaze": "Галт дөл", "Thunder": "Аянга", "Candy": "Чихэр", "Masculine": "Эрэгтэй", "Feminine": "Эмэгтэй",
     "Cocoa": "Какао", "Ocean": "Далай", "Sakura": "Сакура", "Steppe": "Тал нутаг", "Blue sky": "Хөх тэнгэр",
     "Santa": "Санта", "Crown": "Титэм", "Antlers": "Буганы эвэр", "Bow": "Бантан", "Tree": "Гацуур",
     "Snowman": "Цасан хүн", "Gift": "Бэлэг", "Heart": "Зүрх", "Star": "Од", "Sparkle": "Гялбаа",
