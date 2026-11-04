@@ -729,9 +729,9 @@ try {
       "Tsogtbaatar family":["Erdenee Tsogtbaatar","Enktsetseg Dagvadorj","Anand Tsogtbaatar"],
       "Bilguun family":["Bilguun Tsogtbaatar","Maria Tsogtbaatar","Elisa Enkh Tsogtbaatar"],
       "Dagvadorj family":["Khosbayar Dagvadorj","Nara Magsar","Kevin Dagvadorj","Sofia Dagvadorj"],
-      "Lee family":["Chang Lee","Tuyatseg Dagvadorj","Dulgoon Tuyatsetseg","Kenny Lee","Julia Lee","Leah"],
+      "Lee family":["Chang Lee","Tuyatsetseg Dagvadorj","Dulgoon Tuyatsetseg","Kenny Lee","Julia Lee","Leah"],
       "Ganbold family":["Ankhbayar Ganbold","Altantuya Oyunbaatar","Amarlin","Enkhjin","Evel","Enkhee Eej"]
-    }, out = [], keepId = {"Evel":"t-eval"};   // Evel keeps her original id so an existing sign-up stays linked
+    }, out = [], keepId = {"Evel":"t-eval","Tuyatsetseg Dagvadorj":"t-tuyatseg-dagvadorj"};   // renamed people keep their original id so an existing sign-up stays linked
     Object.keys(src).forEach(function(f){
       src[f].forEach(function(n){
         var id = n === "Anand Tsogtbaatar" ? ORG_ID : (keepId[n] || "t-" + n.toLowerCase().replace(/[^a-z0-9]+/g,"-"));
