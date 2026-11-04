@@ -100,6 +100,13 @@ try {
   .sm.melt svg{animation:melt 1.9s cubic-bezier(.45,.05,.7,.7) forwards!important}
   .sm.summon svg{animation:summonin 1.5s cubic-bezier(.3,1.4,.5,1) both!important}
   body.no-snowman #walk,body.no-snowman .sm,body.no-snowman .sbub{display:none!important}
+  /* always-on snowman switch: stays in the corner on every page */
+  .smtog{position:fixed;right:14px;bottom:max(14px,env(safe-area-inset-bottom));z-index:45;display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:600 12px Inter,sans-serif;color:var(--ink);cursor:pointer;box-shadow:0 6px 18px rgba(60,30,50,.16);-webkit-tap-highlight-color:transparent}
+  .smtog .smi{font-size:15px;line-height:1}
+  .smtog:hover{background:rgba(255,255,255,.92)}
+  .smtog:focus-visible{outline:2px solid var(--pine);outline-offset:2px}
+  body.night .smtog{background:rgba(22,20,52,.66);border-color:rgba(255,255,255,.26);color:#f3e9e0}
+  body.introing .smtog{display:none}
   /* the snowman lives on the Home page only (not sign in, sign up, profile, match or admin) */
   body.off-home .walk,body.off-home .sm,body.off-home .sbub,body.off-home .print{display:none!important}
 
@@ -830,6 +837,17 @@ try {
     document.body.classList.toggle("off-home", effTab() !== "home" && !S.smAll);
     if (S.snowman){ document.body.classList.remove("no-snowman"); render(); playSummon(); }
     else { setSnowman(true); render(); }
+  }
+  function smBtn(){
+    var b = document.getElementById("smtog");
+    if (!b){
+      b = document.createElement("button"); b.id = "smtog"; b.type = "button"; b.className = "smtog";
+      b.addEventListener("click", function(){ toggleSnowman(); });
+      document.body.appendChild(b);
+    }
+    var on = smShown(), label = on ? "Remove snowman" : "Summon snowman";
+    b.setAttribute("aria-label", T(label)); b.setAttribute("title", T(label));
+    b.replaceChildren(h("span",{class:"smi","aria-hidden":"true"}, on ? "\u2715" : "\u2603\uFE0F"), h("span",null,label));
   }
   function setSnowman(on){
     if (on === S.snowman) return;
@@ -1851,6 +1869,7 @@ try {
 
   function render(){
     document.body.classList.toggle("off-home", effTab() !== "home" && !S.smAll);
+    smBtn();
     if (S.unavailable){
       app.replaceChildren(topbar(), h("div",{class:"card empty"}, h("h2",null,"Can\u2019t connect right now"), h("p",{class:"sub"},S.unavailable)));
       return;
