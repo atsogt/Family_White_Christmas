@@ -175,7 +175,7 @@
     "None": "Хүрээгүй", "Gold": "Алтан", "Holiday": "Баярын", "Snow": "Цас", "Sunset": "Жаргах нар", "Pine": "Нарс",
     "Rainbow": "Солонго", "Neon": "Неон", "Candy cane": "Чихрийн таяг", "Aurora": "Туяа", "Fairy lights": "Гэрэлт чимэг",
     "Fire": "Гал", "Galaxy": "Галактик", "Frost": "Хяруу",
-    "Blaze": "Галт дөл", "Thunder": "Аянга", "Candy": "Чихэр", "Masculine": "Эрэгтэй", "Feminine": "Эмэгтэй",
+    "Blaze": "Галт дөл", "Thunder": "Аянга", "Candy": "Чихэр",
     "Cocoa": "Какао", "Ocean": "Далай", "Sakura": "Сакура", "Steppe": "Тал нутаг", "Blue sky": "Хөх тэнгэр",
     "Santa": "Санта", "Crown": "Титэм", "Antlers": "Буганы эвэр", "Bow": "Бантан", "Tree": "Гацуур",
     "Snowman": "Цасан хүн", "Gift": "Бэлэг", "Heart": "Зүрх", "Star": "Од", "Sparkle": "Гялбаа",
