@@ -9,9 +9,7 @@
 ---
 
 <p align="center">
-  <video src="https://raw.githubusercontent.com/atsogt/Family_White_Christmas/main/assets/intro.mp4" autoplay loop muted playsinline controls width="100%">
-    Your browser can't play the video — grab the clip at <code>assets/intro.mp4</code>.
-  </video>
+  <img src="https://raw.githubusercontent.com/atsogt/Family_White_Christmas/main/assets/intro.gif" alt="A little holiday magic, animated" width="420" />
   <br />
   <sub>✨ a little holiday magic, animated ✨</sub>
 </p>
