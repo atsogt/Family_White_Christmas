@@ -986,6 +986,21 @@ try {
     if (last < text.length) out.push(text.slice(last));
     return out;
   }
+  // Amazon: keep the link to the exact variant (the ASIN in the path, plus th/psc), drop only the tracking and search junk that makes links huge
+  var AMZ_TRACK = /^(ref_?|tag|linkCode|linkId|creative|creativeASIN|camp|ascsubtag|crid|keywords|field-keywords|qid|sprefix|sr|dib|dib_tag|pd_rd_\w+|pf_rd_\w+|content-id|ie|s|sp_csd|spLa|dchild|cv_ct_\w+|ppw|pldnSite|sbo|rnid|rh|ds|ts_id|bbn|node|fst|_encoding|social_share|utm_\w+|gclid|fbclid)$/i;
+  function tidyLinks(text){
+    return String(text).replace(/(https?:\/\/[^\s]+|www\.[^\s]+)/gi, function(m){
+      var tail = (m.match(/[.,;:!?)]+$/) || [""])[0], raw = tail ? m.slice(0, -tail.length) : m;
+      try {
+        var u = new URL(/^www\./i.test(raw) ? "https://" + raw : raw);
+        if (!/(^|\.)amazon\.[a-z.]{2,6}$/i.test(u.hostname)) return m;
+        u.pathname = u.pathname.replace(/\/ref=[^\/]*$/i, "");
+        Array.from(u.searchParams.keys()).forEach(function(k){ if (AMZ_TRACK.test(k)) u.searchParams.delete(k); });
+        u.hash = "";
+        return u.toString() + tail;
+      } catch(e){ return m; }
+    });
+  }
   var PREV = {};
   function urlIn(text){
     var m = /(https?:\/\/[^\s]+|www\.[^\s]+)/i.exec(String(text||"")); if (!m) return "";
@@ -1198,7 +1213,7 @@ try {
     if (!d.family) return bad("Please choose your family.");
     if (!name) return bad("Please enter your name.");
     if (!existing && norm(name) === ORG_NAME && d.rosterId !== ORG_ID) return bad("That name is the organizer's. Pick it from the family list instead of typing it.");
-    var items = d.items.map(function(x){ return x.trim().slice(0,500); }).filter(Boolean).slice(0,25);
+    var items = d.items.map(function(x){ return tidyLinks(x.trim()).slice(0,1500); }).filter(Boolean).slice(0,25);
     S.saving = true; S.msg = null; render();
     try {
       var uid = existing ? existing.id : S.sid;
@@ -1647,7 +1662,7 @@ try {
       var slot = h("div",{class:"lslot"}, u0 ? linkCard(u0) : null);
       return h("div",null,
         h("div",{class:"row"},
-          h("input",{type:"text",value:txt,maxlength:"500",placeholder:"A gift idea, or paste a link",
+          h("input",{type:"text",value:txt,maxlength:"3000",placeholder:"A gift idea, or paste a link",
             oninput:function(ev){ d.items[i] = ev.target.value; S.dirty = true; },
             onchange:function(){ var u = urlIn(d.items[i]); slot.replaceChildren(); if (u) slot.append(linkCard(u)); }}),
           h("button",{class:"x",type:"button","aria-label":"Remove item",onclick:function(){
